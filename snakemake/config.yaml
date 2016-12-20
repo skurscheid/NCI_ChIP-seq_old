@@ -1,0 +1,149 @@
+# Directories
+basedir: ".."
+refdir: "ref/"
+fastqdir: "rawData/"
+fastqcdir: "rawData/QC/"
+bamdir: "alignment/"
+analysisdir: "analysis/"
+
+# Samples
+# Note: Sample values have to match unit keys
+# Generally there is one control per run, but there may
+# (or may not) be multiple replicates for the ChIP library
+samples:
+        CTCF_WT:
+                CTCF:
+                        - CTCF_WT_rep1
+                control:
+                        - control_WT_rep1
+        CTCF_PreMal:
+                CTCF:
+                        - CTCF_PreMal_rep1
+                        - CTCF_PreMal_rep2
+                control:
+                        - control_PreMal_rep1
+        CTCF_Mal:
+                CTCF:
+                        - CTCF_Mal_rep1
+                        - CTCF_Mal_rep2
+                control:
+                        - control_Mal_rep1
+        CTCF_fibroblast:
+                CTCF:
+                        - CTCF_fibroblast_rep1
+                        - CTCF_fibroblast_rep2
+                control:
+                        - control_fibroblast_rep1
+
+# Units
+# Note: Unit keys have to match sample values
+units:
+        control_WT_rep1:
+                - 140120_SN1055_0187_AC2RPNACXX/Sample_WT-input/WT-input_CAGATC_L008_R1_001.fastq.gz
+                - 140120_SN1055_0187_AC2RPNACXX/Sample_WT-input/WT-input_CAGATC_L008_R2_001.fastq.gz
+        control_PreMal_rep1:
+                - 140704_SN1055_0211_AH9WAAADXX/Sample_Premal-input-repeat/Premal-input-repeat_ATCACG_L002_R1_001.fastq.gz
+                - 140704_SN1055_0211_AH9WAAADXX/Sample_Premal-input-repeat/Premal-input-repeat_ATCACG_L002_R2_001.fastq.gz
+        control_Mal_rep1:
+                - 140120_SN1055_0187_AC2RPNACXX/Sample_Mal-input/Mal-input_ACTTGA_L008_R1_001.fastq.gz
+                - 140120_SN1055_0187_AC2RPNACXX/Sample_Mal-input/Mal-input_ACTTGA_L008_R2_001.fastq.gz
+        CTCF_WT_rep1:
+                - 140120_SN1055_0187_AC2RPNACXX/Sample_WT4/WT4_TGACCA_L007_R1_001.fastq.gz
+                - 140120_SN1055_0187_AC2RPNACXX/Sample_WT4/WT4_TGACCA_L007_R2_001.fastq.gz
+        CTCF_PreMal_rep1:
+                - 140120_SN1055_0187_AC2RPNACXX/Sample_PreM4/PreM4_ACAGTG_L007_R1_001.fastq.gz
+                - 140120_SN1055_0187_AC2RPNACXX/Sample_PreM4/PreM4_ACAGTG_L007_R2_001.fastq.gz
+        CTCF_PreMal_rep2:
+                - 150203_SN1055_0246_AHF7V2ADXX/Sample_PreM-R4/PreM-R4_TGACCA_L001_R1_001.fastq.gz
+                - 150203_SN1055_0246_AHF7V2ADXX/Sample_PreM-R4/PreM-R4_TGACCA_L001_R2_001.fastq.gz
+        CTCF_Mal_rep1:
+                - 140120_SN1055_0187_AC2RPNACXX/Sample_Mal4/Mal4_GCCAAT_L007_R1_001.fastq.gz
+                - 140120_SN1055_0187_AC2RPNACXX/Sample_Mal4/Mal4_GCCAAT_L007_R2_001.fastq.gz
+        CTCF_Mal_rep2:
+                - 150203_SN1055_0246_AHF7V2ADXX/Sample_Mal-R4/Mal-R4_ACAGTG_L001_R1_001.fastq.gz
+                - 150203_SN1055_0246_AHF7V2ADXX/Sample_Mal-R4/Mal-R4_ACAGTG_L001_R2_001.fastq.gz
+        control_fibroblast_rep1:
+                - SRP056800/SRR1950446/SRR1950446_1.fastq.gz
+                - SRP056800/SRR1950446/SRR1950446_2.fastq.gz
+        CTCF_fibroblast_rep1:
+                - SRP056800/SRR1950448/SRR1950448_1.fastq.gz
+                - SRP056800/SRR1950448/SRR1950448_2.fastq.gz
+        CTCF_fibroblast_rep2:
+                - SRP056800/SRR1950449/SRR1950449_1.fastq.gz
+                - SRP056800/SRR1950449/SRR1950449_2.fastq.gz
+
+# Reference sequence
+#refseq:
+#    id: "rDNA_repeat"
+#    filename: "rDNA_repeat.fa"
+#    acc: "BK000964"
+#    cite: "PMID14611805"
+
+#
+refseq:
+    id: "hg38_chr10"
+    mask: "none"
+    filename: "hg38_chr10.fa"
+
+
+# fastqc parameters
+fastqc:
+    cmd: "fastqc"
+
+
+# bbduk.sh parameters
+bbduk:
+    cmd: "bbduk.sh"
+    mem: "-Xmx1g"
+    ref: "rawData/truseq.fa"
+    ktrim: "r"
+    hdist: 1
+    qtrim: "l"
+    trimq: 20
+    minlength: 18
+
+
+# bowtie2-build parameters
+bowtie2-build:
+    cmd: "bowtie2-build"
+
+
+# bowtie2 parameters
+bowtie2:
+    cmd: "bowtie2"
+    in_fmt: "-q"
+    phred: "--phred33"
+    maxins: 500
+    mismatch: 0
+    threads: 6
+
+
+# picard parameters
+picard:
+    cmd: "java -jar ~/Programs/picard.jar"
+
+
+# picard parameters
+bedtools:
+    cmd: "bedtools"
+
+
+# MACS2 parameters
+# Note: Even though macs2 accepts gsize = mm, gsize needs
+# to be a numeric for further downstream bash maths
+macs2:
+    cmd: "~/miniconda3/envs/py27/bin/macs2"
+    gsize: 1.87e9
+#    gsize: 45306
+    qvalue: 0.01
+
+
+# BED to GTF conversion
+bed_to_gtf:
+    cmd: "./scripts/bed2gtf.pl"
+
+
+# featureCounts parameters
+featuresCounts:
+    cmd: "featureCounts"
+#    annot:

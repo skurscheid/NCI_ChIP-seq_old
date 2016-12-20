@@ -1,0 +1,3 @@
+
+            scripts/downloadFastaFromEnsembl.sh hg38 none ref/
+        
