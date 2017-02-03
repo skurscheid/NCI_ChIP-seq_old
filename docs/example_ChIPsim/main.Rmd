@@ -1,0 +1,321 @@
+---
+title: "Simulation of ChIP-seq data"
+author: "Maurits Evers"
+date: "`r format(Sys.time(), '%d %B %Y')`"
+output:
+  html_document:
+    toc: true
+    toc_depth: 2
+    toc_float: true
+    number_sections: true
+    theme: united
+    df_print: paged
+---
+
+<script type="text/x-mathjax-config">
+MathJax.Hub.Config({
+  TeX: { equationNumbers: { autoNumber: "all" } }
+});
+</script> 
+
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(fig.path = 'figures/', echo = TRUE)
+```
+
+# Introduction
+[`ChIPsim`](https://www.bioconductor.org/packages/release/bioc/html/ChIPsim.html) provides a framework for the simulation of ChIP-seq data. This is worked-through example of how to use `ChIPsim` for the simulation of data from a transcription factor binding ChIP-seq experiment, and is based on the "Advanced model" from the [`ChIPsim` vignette](https://www.bioconductor.org/packages/devel/bioc/vignettes/ChIPsim/inst/doc/ChIPsimIntro.pdf). Briefly, the simulation process involves the following steps:
+
+1. Definition of a Markov chain model that describes transitions between background and binding regions.
+2. Generation of background and binding regions.
+3. Conversion of background and binding regions to reference-wide binding site densities.
+3. Generation of read densities from binding site densities.
+4. Output of background and binding region-associated reads.
+
+# Prerequisities
+
+We start by loading necessary R packages and set a fixed seed (for ensuring results reproducibility).
+
+```{r}
+suppressMessages(library(ChIPsim));   # Main package for ChIP-seq data simulation
+suppressMessages(library(ggplot2));   # For plotting
+suppressMessages(library(actuar));    # For pareto distribution
+set.seed(1234);
+```
+
+
+# Markov chain parameters
+
+We define a transition matrix $P$ that describes the transition probabilities
+of the model's Markov chain. Here we require that a binding region is followed
+by a background region, and that multiple background regions are allowed to
+follow each other.
+
+$$ P = \left(\begin{array}{c|cc} & P_\text{Binding} & P_\text{Background} \\\hline P_\text{Binding} & 0.00 & 1.00  \\ P_\text{Background} & 0.05 & 0.95  \end{array}\right)$$
+
+```{r}
+# Transition probabilities
+# Note that a binding region has to be followed by a background region,
+# while background regions are allowed to follow each other.
+#       Bind  Back
+#       ----------
+# P =   0.00  1.00  | Bind
+#       0.05  0.95  | Back
+transition <- list(
+    Binding = c(Background = 1),
+    Background = c(Binding = 0.05, Background = 0.95)
+);
+transition <- lapply(transition, "class<-", "StateDistribution");
+```
+
+Next we define the initial state of the Markov chain
+$$ x^{(0)} = \left(\begin{array}{c}0 \\ 1\end{array}\right)\,.$$
+```{r}
+# Start Markov chain with background
+init <- c(Binding = 0, Background = 1);
+class(init) <- "StateDistribution";
+```
+
+
+# Background and binding region characterisation
+
+## Sampling weight distributions 
+We now define two functions that characterise the background and binding regions. 
+
+### Background regions
+We use a gamma distribution to model the background sampling weight for each background region
+
+\begin{align}
+w_\text{Background} &\sim \text{Gamma}(k, \theta) \\
+f_X^\text{Gamma}(x) &= \frac{1}{\Gamma(k)\theta^k}x^{k-1}e^{-\frac{x}{\theta}}\,,
+\end{align}
+
+with a shape parameter $k = 1$ and scale parameter $\theta = 20$. We set background regions to span a width of 1 kb.
+```{r}
+# Define background region length
+backgroundLength <- 1000;
+# Define function to generate the parameters for background regions.
+# Here we use a gamma distribution to model the background sampling weight
+# for each region.
+backgroundFeature <- function(
+    start,
+    length = backgroundLength,
+    shape = 1,
+    scale = 20) {
+    weight <- rgamma(1, shape = 1, scale = 20);
+    params <- list(start = start, length = length, weight = weight);
+    class(params) <- c("Background", "SimulatedFeature");
+    return(params);
+}
+```
+
+
+### Binding regions
+For the binding regions, we use a Pareto distribution to model the binding region sampling weights
+\begin{align}
+w_\text{Binding} &\sim \text{ParetoI}(r, x_m) \\
+f_X^\text{ParetoI}(x) &= \begin{cases} \dfrac{r x_m^r}{x^{r+1}} & x \geq x_m\,, \\[2ex] 0 & x < x_m\,.\end{cases}
+\end{align}
+We use $r = 1.5$ and choose $x_m$ such that the mean of the distribution is equal to the mean of the background sampling weight distribution times an enrichment factor $t$
+\begin{equation}
+\label{eq:matchingCondition}
+\text{mean}(f_X^\text{Pareto}(x)) = \text{mean}(f_X^\text{Gamma}) \times t = k \times \theta \times t\,.
+\end{equation}
+
+Binding regions are set to span a width of 50 bp.
+```{r}
+# Define binding region length
+bindingLength = 50;
+# Define function to generate the parameters for binding regions.
+# Here we set the sampling weight for binding sites to be the average
+# weight of background regions multiplied by and enrichment coefficient.
+# w_binding' = t x mean(w_background). We use a Pareto distribution
+# with parameter r to determine w_binding for each binding site. The
+# minimum of the distribution is chosen such that its mean is w_binding'.
+bindingFeature <- function(
+    start,
+    length = bindingLength,
+    shape = 1,
+    scale = 20,
+    enrichment = 5,
+    r = 1.5) {
+    stopifnot(r > 1);
+    avgWeight <- shape * scale * enrichment;
+    lowerBound <- (r - 1) * avgWeight;
+    weight <- actuar::rpareto1(1, r, lowerBound);
+    params <- list(start = start, length = length, weight = weight);
+    class(params) <- c("Binding", "SimulatedFeature");
+    return(params);
+}
+```
+*Note: I am not entirely clear on the parametrisation of the `actuar::rpareto1` Pareto function's lower bound $x_m$ used here. Following the standard parametrisation of the Pareto Type I distribution, I would have expected `lowerBound <- (r - 1) * avgWeight / r`, since $\text{mean}(f_X^\text{Pareto}) = (r x_m) / (r-1)$.*
+
+## Markov chain-modelling binding and background regions
+
+We are now ready to generate background and binding site loci.
+```{r}
+# Generate feature sequences
+# Note that this generates a list of background and binding sites, based
+# on the transition probabilities of the Markov chain model, and on the
+# sampling weights for background and binding sites defined by the two
+# functions backgroundFeature() and bindingFeatures().
+generator <- list(
+    Binding = bindingFeature,
+    Background = backgroundFeature);
+features <- ChIPsim::placeFeatures(
+    generator,
+    transition,
+    init,
+    start = 0,
+    length = 1e6,
+    globals = list(shape = 1, scale = 20),
+    experimentType = "TFExperiment",
+    lastFeat = c(Binding = FALSE, Background = TRUE));
+```
+
+Here we make the following assumptions:
+
+1. We model background and binding regions in the spatial interval $[0, 10^6]$ bp. 
+2. We ensure that shape and scale parameters are consistent across the background and binding region sampling weight distributions. with matching conditions as defined in Eq. $\eqref{eq:matchingCondition}$.
+3. We also require that the last feature is a background region.
+
+The resulting object `features` contains a list of binding and background regions
+```{r}
+table(sapply(features, class));
+```
+
+Every region is characterised by a start position, a length, and a sampling weight, e.g.
+```{r}
+features[[1]];
+```
+
+We plot the distribution of sampling weights for the modelled background and binding regions.
+```{r}
+# We plot the distribution of sampling weights for the derived background
+# and binding sites.
+df <- cbind.data.frame(
+    weight = sapply(features, "[[", "weight"),
+    type = sapply(features, function(x) class(x)[1]));
+gg <- ggplot(subset(df, weight <= 500), aes(weight, fill = type));
+gg <- gg + geom_density(alpha = 0.3);
+gg <- gg + theme_bw();
+gg <- gg + scale_fill_brewer(palette = "Dark2");
+gg <- gg + xlim(0, 500);
+gg <- gg + labs(
+    x = "Sampling weight",
+    y = "Density",
+    fill = "Binding site type");
+gg;
+```
+
+Note: The `ChIPsim` vignette states that in this case we can also use `ChIPsim::makeFeatures` instead of `ChIPsim::placeFeatures` to generate features. Generally, there seems to be a lack of consistency betwen the return objects of `ChIPsim::makeFeatures` and `ChIPsim::placeFeatures`. Specifically, using `features <- ChIPsim::makeFeatures(...)` and doing `ChIPsim::feat2dens(features)` leads to the following error
+```
+> feat2dens(features)
+Error in sum(sapply(features, "[[", "overlap"), na.rm = TRUE) :
+  invalid 'type' (list) of argument
+```
+The command `ChIPsim::feat2dens` is a wrapper function around the functions `ChIPsim::featureDensity` and `ChIPsim::joinRegions`. It appears that the check whether an `overlap` entry is present in the `features` object is not working, therefore failing to process a `ChIPsim::makeFeatures` return object, which does not contain an `overlap` entry. It should not be too difficult to fix this bug in the relevant functions.
+
+
+# Overall binding site densities
+
+We can now translate background and binding regions into a reference-wide binding site density. To do so we must first define two method functions (one for binding sites and one for background sites) that characterise the distribution of the sampling weights across the region.
+
+We define binding site densities such that a transcription factor binding site is represented by a single peak of height $w_\text{binding} \times L_\text{binding}$ at the centre $x_0$ of the binding region 
+\begin{equation}
+\rho(x)^\text{Binding} = w_\text{Binding}\times L_\text{binding}\times\delta(x - x_0)\,,
+\end{equation}
+where $L_\text{binding}$ corresponds to the length of the binding region.
+```{r}
+# Binding site density
+featureDensity.Binding <- function(feature, ...) {
+  featDens <- numeric(feature$length);
+  featDens[floor(feature$length / 2)] <- feature$weight;
+#  featDens[floor(feature$length / 2)] <- feature$weight * feature$length;
+  return(featDens);
+}
+```
+
+We define background site densities such that the background region sampling weight is uniformly distributed across the background region.
+```{r}
+featureDensity.Background <- function(feature, ...) {
+  featDens <- numeric(feature$length);
+#  featDens[] <- feature$weight;
+  featDens[] <- feature$weight / bindingLength;
+  return(featDens);
+}
+```
+
+Note: The approach taken in the [`ChIPsim` vignette](https://www.bioconductor.org/packages/devel/bioc/vignettes/ChIPsim/inst/doc/ChIPsimIntro.pdf) is slightly different, where binding site densities are represented by a single peak of height $w_\text{binding}$ and background site densities are uniformly scaled down by a factor $L_\text{binding}$. Both approaches conserve the relative distribution of sampling weights across the binding sites.
+
+We can now calculate binding site densities.
+```{r}
+dens <- ChIPsim::feat2dens(features, length = 1e6);
+```
+Note that the defined method functions `featureDensity.Binding` and `featureDensity.Background` are based on the the S3 generic function `ChIPsim::featureDensity`, and are automatically called within `ChIPsim::feat2dens`. 
+
+We plot the binding site density across the entire reference.
+```{r}
+df <- cbind.data.frame(
+  pos = seq(1, length(dens)), 
+  dens = dens);
+df2 <- cbind.data.frame(
+  pos = sapply(features, "[[", 1), 
+  weight = sapply(features, "[[", 3), 
+  sapply(features, class)[1, ]);
+gg <- ggplot(df, aes(x = pos, y = dens));
+gg <- gg + geom_line();
+gg <- gg + geom_step(data = df2, aes(x = pos, y = weight), colour = "red", alpha = 0.5);
+gg <- gg + theme_bw();
+gg <- gg + labs(
+  x = "Position along reference",
+  y = "Density");
+gg;
+```
+
+We also show the binding site density within a 10kb window around the largest peak on a log10 scale.
+```{r}
+range <- 5000;
+gg <- ggplot(df[which.max(df$dens) - seq(-range, range), ]);
+gg <- gg + geom_line(aes(x = pos, y = dens));
+gg <- gg + geom_step(data = df2[which(df2$pos >= which.max(df$dens) - range & df2$pos <= which.max(df$dens) + range), ], 
+                     aes(x = pos, y = weight), colour = "red", alpha = 0.5);
+gg <- gg + theme_bw();
+gg <- gg + labs(
+  x = "Position along reference",
+  y = "Density");
+gg <- gg + scale_y_log10();
+gg;
+```
+
+# Strand-specific read densities
+
+Work in progress...
+
+We first define a DNA fragment length distribution function
+
+```{r}
+fragLength <- function(x, minLength, maxLength, meanLength, ...) {
+  sd <- (maxLength - minLength)/4;
+  prob <- dnorm(minLength:maxLength, mean = meanLength, sd = sd);
+  prob <- prob/sum(prob);
+  prob[x - minLength + 1];
+}
+```
+
+
+## 
+```{r}
+readDens <- ChIPsim::bindDens2readDens(
+  dens, 
+  fragLength, 
+  bind = 50, 
+  minLength = 150, 
+  maxLength = 250,
+	meanLength = 200);
+```
+
+## Sampling reads
+```{r}
+readLoc <- ChIPsim::sampleReads(readDens, 1e5);
+```
