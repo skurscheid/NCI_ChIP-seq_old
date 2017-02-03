@@ -460,15 +460,17 @@ gg;</code></pre>
 <div id="strand-specific-read-densities" class="section level1">
 <h1><span class="header-section-number">6</span> Strand-specific read densities</h1>
 <p>Work in progress…</p>
-<p>We first define a DNA fragment length distribution function</p>
+We first define a DNA fragment length distribution function. Here we estimate the standard deviation of the length distribution from the range
+<span class="math display">\[\begin{equation}
+\text{sd} = \frac{\text{max} - \text{min}}{4}\,.
+\end{equation}\]</span>
 <pre class="r"><code>fragLength &lt;- function(x, minLength, maxLength, meanLength, ...) {
   sd &lt;- (maxLength - minLength)/4;
   prob &lt;- dnorm(minLength:maxLength, mean = meanLength, sd = sd);
   prob &lt;- prob/sum(prob);
-  prob[x - minLength + 1];
+  return(prob[x - minLength + 1]);
 }</code></pre>
-<div id="section" class="section level2">
-<h2><span class="header-section-number">6.1</span> </h2>
+<p>We then generate read densities for the forward and reverse strand using the binding site densities <code>dens</code> and DNA fragment length distribution function <code>fragLength</code>.</p>
 <pre class="r"><code>readDens &lt;- ChIPsim::bindDens2readDens(
   dens, 
   fragLength, 
@@ -476,10 +478,9 @@ gg;</code></pre>
   minLength = 150, 
   maxLength = 250,
     meanLength = 200);</code></pre>
-</div>
 <div id="sampling-reads" class="section level2">
-<h2><span class="header-section-number">6.2</span> Sampling reads</h2>
-<pre class="r"><code>readLoc &lt;- ChIPsim::sampleReads(readDens, 1e5);</code></pre>
+<h2><span class="header-section-number">6.1</span> Sampling reads</h2>
+<pre class="r"><code>#readLoc &lt;- ChIPsim::sampleReads(readDens, 1e5);</code></pre>
 </div>
 </div>
 

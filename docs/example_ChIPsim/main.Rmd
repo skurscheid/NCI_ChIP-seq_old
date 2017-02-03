@@ -292,19 +292,21 @@ gg;
 
 Work in progress...
 
-We first define a DNA fragment length distribution function
+We first define a DNA fragment length distribution function. Here we estimate the standard deviation of the length distribution from the range
+\begin{equation}
+\text{sd} = \frac{\text{max} - \text{min}}{4}\,.
+\end{equation}
 
 ```{r}
 fragLength <- function(x, minLength, maxLength, meanLength, ...) {
   sd <- (maxLength - minLength)/4;
   prob <- dnorm(minLength:maxLength, mean = meanLength, sd = sd);
   prob <- prob/sum(prob);
-  prob[x - minLength + 1];
+  return(prob[x - minLength + 1]);
 }
 ```
 
-
-## 
+We then generate read densities for the forward and reverse strand using the binding site densities `dens` and DNA fragment length distribution function `fragLength`. 
 ```{r}
 readDens <- ChIPsim::bindDens2readDens(
   dens, 
@@ -317,5 +319,5 @@ readDens <- ChIPsim::bindDens2readDens(
 
 ## Sampling reads
 ```{r}
-readLoc <- ChIPsim::sampleReads(readDens, 1e5);
+#readLoc <- ChIPsim::sampleReads(readDens, 1e5);
 ```
