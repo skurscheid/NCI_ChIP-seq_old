@@ -40,6 +40,7 @@ We start by loading necessary R packages and set a fixed seed (for ensuring resu
 suppressMessages(library(ChIPsim));   # Main package for ChIP-seq data simulation
 suppressMessages(library(ggplot2));   # For plotting
 suppressMessages(library(actuar));    # For pareto distribution
+suppressMessages(library(reshape2));  # For melt (convert wide df to long df)
 set.seed(1234);
 ```
 
@@ -256,14 +257,14 @@ Note that the defined method functions `featureDensity.Binding` and `featureDens
 
 We plot the binding site density across the entire reference.
 ```{r}
-df <- cbind.data.frame(
+df.site <- cbind.data.frame(
   pos = seq(1, length(dens)), 
   dens = dens);
 df2 <- cbind.data.frame(
   pos = sapply(features, "[[", 1), 
   weight = sapply(features, "[[", 3), 
   sapply(features, class)[1, ]);
-gg <- ggplot(df, aes(x = pos, y = dens));
+gg <- ggplot(df.site, aes(x = pos, y = dens));
 gg <- gg + geom_line();
 gg <- gg + geom_step(data = df2, aes(x = pos, y = weight), colour = "red", alpha = 0.5);
 gg <- gg + theme_bw();
@@ -276,10 +277,13 @@ gg;
 We also show the binding site density within a 10kb window around the largest peak on a log10 scale.
 ```{r}
 range <- 5000;
-gg <- ggplot(df[which.max(df$dens) - seq(-range, range), ]);
+xpeak <- which.max(df.site$dens);   # Position of largest peak
+gg <- ggplot(df.site[xpeak - seq(-range, range), ]);
 gg <- gg + geom_line(aes(x = pos, y = dens));
-gg <- gg + geom_step(data = df2[which(df2$pos >= which.max(df$dens) - range & df2$pos <= which.max(df$dens) + range), ], 
-                     aes(x = pos, y = weight), colour = "red", alpha = 0.5);
+gg <- gg + geom_step(data = df2[which(abs(df2$pos - xpeak) <= range), ], 
+                     aes(x = pos, y = weight), 
+                     colour = "red", 
+                     alpha = 0.5);
 gg <- gg + theme_bw();
 gg <- gg + labs(
   x = "Position along reference",
@@ -288,11 +292,12 @@ gg <- gg + scale_y_log10();
 gg;
 ```
 
-# Strand-specific read densities
+# DBA fragment and read densities
+Note: According to the `ChIPsim` vignette, the function `ChIPsim::bindDens2readDens` generates read densities for the forward and reverse strand. I find this description ambiguous, as the function really simulates *DNA fragment densities* from both strands. *Reads* are simulated in a subsequent step, using the function `ChIPsim::sampleReads`. To maintain consistency with the vignette description, I will continue to refer to "read densities" in the context of `ChIPsim::bindDens2readDens`. 
 
-Work in progress...
+## DNA fragment size distribution 
 
-We first define a DNA fragment length distribution function. Here we estimate the standard deviation of the length distribution from the range
+We first define a DNA fragment size distribution function. Here we estimate the standard deviation of the length distribution from the range
 \begin{equation}
 \text{sd} = \frac{\text{max} - \text{min}}{4}\,.
 \end{equation}
@@ -306,7 +311,9 @@ fragLength <- function(x, minLength, maxLength, meanLength, ...) {
 }
 ```
 
-We then generate read densities for the forward and reverse strand using the binding site densities `dens` and DNA fragment length distribution function `fragLength`. 
+## Read density distribution
+
+We can now generate read densities (better: DNA fragment densities) for the forward and reverse strand using the binding site densities `dens` and DNA fragment length distribution function `fragLength`. 
 ```{r}
 readDens <- ChIPsim::bindDens2readDens(
   dens, 
@@ -317,7 +324,40 @@ readDens <- ChIPsim::bindDens2readDens(
 	meanLength = 200);
 ```
 
-## Sampling reads
+Here, we have assumed a DNA fragment size distribution with parameters
+\begin{align*}
+\mu &= 200\text{ bp}\\
+\text{min} &= 150\text{ bp}\\
+\text{max} &= 250\text{ bp}\,.
+\end{align*}
+
+We plot binding site and read densities around the largest peak within a 1kb window on a log10 scale.
 ```{r}
-#readLoc <- ChIPsim::sampleReads(readDens, 1e5);
+range <- 500;
+df.DNA <- cbind.data.frame(
+  pos = seq(1, nrow(readDens)),
+  readDens);
+colnames(df.DNA)[2:3] <- c("positive", "negative");
+df.DNA <- melt(df.DNA, id.vars = "pos");
+df <- rbind.data.frame(
+  cbind.data.frame(pos = df.site$pos, 
+                   variable = "bindingSite", 
+                   value = df.site$dens),
+  df.DNA);
+gg <- ggplot(subset(df, abs(pos - xpeak) <= range));
+gg <- gg + geom_line(aes(x = pos, y = value));
+gg <- gg + facet_grid(variable ~ ., scales = "free_y");
+gg <- gg + theme_bw();
+gg <- gg + labs(
+  x = "Position along reference",
+  y = "Density");
+gg <- gg + scale_y_log10();
+gg;
 ```
+
+## Sampling reads
+We can now sample read positions from the DNA fragment densities.
+```{r}
+readLoc <- ChIPsim::sampleReads(readDens, 1e5);
+```
+
