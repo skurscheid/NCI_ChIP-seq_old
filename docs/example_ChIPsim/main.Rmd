@@ -37,11 +37,19 @@ knitr::opts_chunk$set(fig.path = 'figures/', echo = TRUE)
 We start by loading necessary R packages and set a fixed seed (for ensuring results reproducibility).
 
 ```{r}
-suppressMessages(library(ChIPsim));   # Main package for ChIP-seq data simulation
-suppressMessages(library(ggplot2));   # For plotting
-suppressMessages(library(actuar));    # For pareto distribution
-suppressMessages(library(reshape2));  # For melt (convert wide df to long df)
+suppressMessages(library(Biostrings));  # For DNAStringSet
+suppressMessages(library(ChIPsim));     # Main package for ChIP-seq data simulation
+suppressMessages(library(ggplot2));     # For plotting
+suppressMessages(library(actuar));      # For pareto distribution
+suppressMessages(library(reshape2));    # For melt (convert wide df to long df)
 set.seed(1234);
+```
+
+We simulate transcription factor ChIP-seq reads from the human GRCh38 mitochondrial DNA sequence. We need to read in the reference sequence in order to estimate the size of the reference. 
+```{r}
+genome <- readDNAStringSet("GRCh38_MT.fa.gz");
+refLength <- width(genome);
+print(refLength);
 ```
 
 
@@ -81,7 +89,9 @@ class(init) <- "StateDistribution";
 # Background and binding region characterisation
 
 ## Sampling weight distributions 
-We now define two functions that characterise the background and binding regions. 
+We now define two functions that characterise the background and binding regions.
+
+<span style="color:darkgreen">**Comment:** Two critical parameters here are the length of a background and binding region. See my comment in section 4.2 about the possible error in `ChIPsim::placeFeatures`.</span>
 
 ### Background regions
 We use a gamma distribution to model the background sampling weight for each background region
@@ -91,10 +101,11 @@ w_\text{Background} &\sim \text{Gamma}(k, \theta) \\
 f_X^\text{Gamma}(x) &= \frac{1}{\Gamma(k)\theta^k}x^{k-1}e^{-\frac{x}{\theta}}\,,
 \end{align}
 
-with a shape parameter $k = 1$ and scale parameter $\theta = 20$. We set background regions to span a width of 1 kb.
+with a shape parameter $k = 1$ and scale parameter $\theta = 20$. We set background regions to span a width of 500 kb.
 ```{r}
 # Define background region length
-backgroundLength <- 1000;
+#backgroundLength <- 1000;
+backgroundLength <- 500;
 # Define function to generate the parameters for background regions.
 # Here we use a gamma distribution to model the background sampling weight
 # for each region.
@@ -149,9 +160,9 @@ bindingFeature <- function(
     return(params);
 }
 ```
-*Note: I am not entirely clear on the parametrisation of the `actuar::rpareto1` Pareto function's lower bound $x_m$ used here. Following the standard parametrisation of the Pareto Type I distribution, I would have expected `lowerBound <- (r - 1) * avgWeight / r`, since $\text{mean}(f_X^\text{Pareto}) = (r x_m) / (r-1)$.*
+<span style="color:darkgreen">**Comment:** I am not entirely clear on the parametrisation of the `actuar::rpareto1` Pareto function's lower bound $x_m$ used here. Following the standard parametrisation of the Pareto Type I distribution, I would have expected `lowerBound <- (r - 1) * avgWeight / r`, since $\text{mean}(f_X^\text{Pareto}) = (r x_m) / (r-1)$.</span>
 
-## Markov chain-modelling binding and background regions
+## Markov chain-modelling of binding and background regions
 
 We are now ready to generate background and binding site loci.
 ```{r}
@@ -168,15 +179,17 @@ features <- ChIPsim::placeFeatures(
     transition,
     init,
     start = 0,
-    length = 1e6,
+    length = refLength,
     globals = list(shape = 1, scale = 20),
     experimentType = "TFExperiment",
     lastFeat = c(Binding = FALSE, Background = TRUE));
 ```
 
+<span style="color:darkgreen">**Comment:** The function `ChIPsim::placeFeatures` throws an error if I have `backgroundLength = 1000` and `length = refLength = width(genome)` (or explicitly `length = 16569`): `Error in sample.int(length(x), size, replace, prob): invalid first argument`. I am not entirely clear on why this happens. A `traceback()` shows that the error originates from the line `sample(names(transition[[class(init)[1]]]), 1, prob = transition[[class(init)[1]]])` within the `makeFeatures` function. The error disappears if we *increase* `refLength`, or *decrease* `lengthBackground`. Therefore I have the suspicion that the error appears if the Markov model yields no binding sites; in the case here where `backgroundLength = 500` and `refLength = width(genome)` we end up with only one single binding site, but no error. If we want to generalise this to arbitrarily large/small reference sequences we probably need to have implement a check before running `ChIPsim::placeFeatures`. One possibility would be to re-run the Markov model with different seeds until we have *at least* one binding site.</span>
+
 Here we make the following assumptions:
 
-1. We model background and binding regions in the spatial interval $[0, 10^6]$ bp. 
+1. We model background and binding regions in the spatial interval [0, `r width(genome)`] bp. 
 2. We ensure that shape and scale parameters are consistent across the background and binding region sampling weight distributions. with matching conditions as defined in Eq. $\eqref{eq:matchingCondition}$.
 3. We also require that the last feature is a background region.
 
@@ -251,7 +264,7 @@ Note: The approach taken in the [`ChIPsim` vignette](https://www.bioconductor.or
 
 We can now calculate binding site densities.
 ```{r}
-dens <- ChIPsim::feat2dens(features, length = 1e6);
+dens <- ChIPsim::feat2dens(features, length = refLength);
 ```
 Note that the defined method functions `featureDensity.Binding` and `featureDensity.Background` are based on the the S3 generic function `ChIPsim::featureDensity`, and are automatically called within `ChIPsim::feat2dens`. 
 
@@ -292,12 +305,13 @@ gg <- gg + scale_y_log10();
 gg;
 ```
 
-# DBA fragment and read densities
-Note: According to the `ChIPsim` vignette, the function `ChIPsim::bindDens2readDens` generates read densities for the forward and reverse strand. I find this description ambiguous, as the function really simulates *DNA fragment densities* from both strands. *Reads* are simulated in a subsequent step, using the function `ChIPsim::sampleReads`. To maintain consistency with the vignette description, I will continue to refer to "read densities" in the context of `ChIPsim::bindDens2readDens`. 
+# From DNA fragment to reads
+
+<span style="color:darkgreen">**Comment:** According to the `ChIPsim` vignette, the function `ChIPsim::bindDens2readDens` generates read densities for the forward and reverse strand. I find this description ambiguous; in fact the function simulates *DNA fragment densities* from both strands. *Reads* are simulated in a subsequent step, using the functions `ChIPsim::sampleReads` and `ChIPsim::pos2fastq`. However to maintain consistency with the vignette description, I will continue to refer to "read densities" in the context of `ChIPsim::bindDens2readDens`.</span>
 
 ## DNA fragment size distribution 
 
-We first define a DNA fragment size distribution function. Here we estimate the standard deviation of the length distribution from the range
+We first define a DNA fragment size distribution function. We parametrise the size distribution by a normal distribution, with a minimum, maximum and mean DNA size. We estimate the standard deviation of the normal size distribution from the range
 \begin{equation}
 \text{sd} = \frac{\text{max} - \text{min}}{4}\,.
 \end{equation}
@@ -313,7 +327,7 @@ fragLength <- function(x, minLength, maxLength, meanLength, ...) {
 
 ## Read density distribution
 
-We can now generate read densities (better: DNA fragment densities) for the forward and reverse strand using the binding site densities `dens` and DNA fragment length distribution function `fragLength`. 
+We can now generate read densities (better: DNA fragment densities) for the forward and reverse strand using the binding site densities `dens` and DNA fragment size distribution function `fragLength`. 
 ```{r}
 readDens <- ChIPsim::bindDens2readDens(
   dens, 
@@ -321,7 +335,7 @@ readDens <- ChIPsim::bindDens2readDens(
   bind = 50, 
   minLength = 150, 
   maxLength = 250,
-	meanLength = 200);
+  meanLength = 200);
 ```
 
 Here, we have assumed a DNA fragment size distribution with parameters
@@ -330,6 +344,8 @@ Here, we have assumed a DNA fragment size distribution with parameters
 \text{min} &= 150\text{ bp}\\
 \text{max} &= 250\text{ bp}\,.
 \end{align*}
+
+<span style="color:darkgreen">**Comment:** Following the example from the vignette, we pass the argument `bind = 50` to `ChIPsim::bindDens2readDens`, even though we don't use the length of the binding site in the fragment size distribution function. From the vignette, page 13: "Here we do not use the length of the binding site but our function either needs a bind argument or use ‘. . .’ to absorb any additional arguments." The function `ChIPsim::bindDens2readDens` samples DNA fragment sizes from the range `(minlength:maxLength) - bind`. So we *must* specify the binding site length when calling the function.</span>  
 
 We plot binding site and read densities around the largest peak within a 1kb window on a log10 scale.
 ```{r}
@@ -358,6 +374,45 @@ gg;
 ## Sampling reads
 We can now sample read positions from the DNA fragment densities.
 ```{r}
-readLoc <- ChIPsim::sampleReads(readDens, 1e5);
+readLoc <- ChIPsim::sampleReads(readDens, nreads = 1e5);
 ```
+
+The result is a `list` of two integer vectors containing read start positions from the forward and reverse strand.
+
+We can convert read start positions into read sequence and quality strings using `ChIP::pos2fastq`. To do so, we first define a function to generate uniformly random read qualities using the Phred+33 quality score encoding.
+```{r}
+randomQualityPhred33 <- function(read, ...) {
+  # Character vector of symbols for the Phred+33 quality encoding scale
+  rangePhred33 <- unlist(strsplit(rawToChar(as.raw(33:126)), ""));
+  # Uniform-randomly sample qualities
+  paste(sample(rangePhred33, length(read), replace = TRUE), collapse = "");
+}
+```
+
+Based on sampled read positions, we extract reads from the reference sequence and store the output in a FASTQ file.
+```{r}
+# Read length
+readLength <- 100;
+
+# We need to make sure that readLoc + readLen <= refLength for both strands
+readLoc[[1]] <- readLoc[[1]][which(readLoc[[1]] + readLength <= refLength)];
+readLoc[[2]] <- readLoc[[1]][which(readLoc[[1]] - readLength > 0)];
+
+# Create names
+nreads <- sapply(readLoc, length);
+names <- list(fwd = sprintf("read_fwd_%s", seq(nreads[1])),
+              rev = sprintf("read_rev_%s", seq(nreads[2])));
+
+# Write to FASTQ
+# Uncomment for output
+#pos2fastq(readLoc, 
+#          names = names,
+#          sequence = genome[[1]],
+#          qualityFun = randomQualityPhred33, 
+#          errorFun = readError,
+#          readLen = readLength,
+#          file = "TF_ChIP_MT.fastq");
+```
+
+<span style="color:darkgreen">**Comment:** The function `ChIPsim::pos2fastq` does not automatically check if `readLoc + readLen <= refLength`, so we need to do this manually prior to calling `ChIPsim::pos2fastq`; the function generates sequencing errors based on an error model that performs single nucleotide substitutions depending on simulated read qualities. This seems to be the default mode. Lastly, output is written to a FASTQ file using the function `ChIPsim::writeFASTQ`, which unfortunately does not allow for gzip'ed FASTQ output. Best to not use `ChIPsim::pos2fastq`, and instead generate reads and read qualities manually, and write output to a gzipped FASTQ file using the `ShortRead` library.</span>
 
