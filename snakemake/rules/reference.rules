@@ -1,44 +1,24 @@
-# Snakemake rules to generate reference sequence data
+# Snakemake rules to generate and
+# process reference sequence data
 #
 # Author: Maurits Evers
 # License: GPLv3
 # Original date: 14-10-2016
-# Last changed: 23-10-2016
+# Last changed: 13-02-2017
 
 localrules:
-    download_ref_from_Ensembl
+    download_reference
 
-# Download reference sequence from Ensembl
-rule download_ref_from_Ensembl:
+# Download reference sequence using curl
+rule download_reference:
     input:
-        "scripts/downloadFastaFromEnsembl.sh"
     output:
-        REF
+        join(config["refdir"], "{version}", "{chr}.fa.gz")
     params:
-        cmd    = "scripts/downloadFastaFromEnsembl.sh",
-        mask   = config["refseq"]["mask"],
-        genome = config["refseq"]["id"],
-        refdir = config["refdir"]
+        cmd  = "curl",
+        URL  = lambda wildcards: expand("{url}", url = config["reference"][wildcards.version][wildcards.chr])
     version: "1.0"
     shell:
         """
-            {params.cmd} {params.genome} {params.mask} {params.refdir}
-        """
-
-
-# Make bowtie2 index
-rule make_bowtie2_index:
-    input:
-        REF
-    output:
-        IDX
-    log:
-        expand("logs/bowtie2-build_{id}.log", id = config["refseq"]["id"])
-    params:
-        cmd  = "bowtie2-build",
-        base = re.sub(".fa", "", REF)
-    version: "1.0"
-    shell:
-        """
-            {params.cmd} {input} {params.base} > {log}
+            {params.cmd} -o {output} {params.URL}
         """

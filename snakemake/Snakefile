@@ -27,13 +27,13 @@ workdir: config["basedir"]
 #######################################################
 
 # Reference sequence
-REF = join(config["refdir"], config["refseq"]["id"], config["refseq"]["filename"])
+REF = expand(join(config["refdir"], "{path}.fa.gz"),
+    path = [x + "/" + y \
+        for x in config["reference"].keys() \
+            for y in config["reference"][x].keys()])
 
-# bowtie2 index
-IDX = expand(re.sub("fa", "{idx}.bt2l", REF), idx = range(1,5))
-
-#for smp in ALL_BAM:
-#    message("Sample " + smp + " will be created")
+#for x in REF:
+#    message("Reference " + x)
 
 #######################################################
 ###################### Includes #######################
@@ -50,4 +50,4 @@ include: "rules/reference.rules"
 # Input fastq files
 rule all:
     input:
-        IDX
+        REF
