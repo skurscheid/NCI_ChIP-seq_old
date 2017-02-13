@@ -11,9 +11,8 @@ set.seed(1234);
 
 ## ------------------------------------------------------------------------
 genome <- readDNAStringSet("GRCh38_MT.fa.gz");
-width(genome);
-refLength <- 1e5;
 refLength <- width(genome);
+print(refLength);
 
 ## ------------------------------------------------------------------------
 # Transition probabilities
@@ -36,6 +35,7 @@ class(init) <- "StateDistribution";
 
 ## ------------------------------------------------------------------------
 # Define background region length
+#backgroundLength <- 1000;
 backgroundLength <- 500;
 # Define function to generate the parameters for background regions.
 # Here we use a gamma distribution to model the background sampling weight
@@ -140,11 +140,11 @@ dens <- ChIPsim::feat2dens(features, length = refLength);
 
 ## ------------------------------------------------------------------------
 df.site <- cbind.data.frame(
-  pos = seq(1, length(dens)),
+  pos = seq(1, length(dens)), 
   dens = dens);
 df2 <- cbind.data.frame(
-  pos = sapply(features, "[[", 1),
-  weight = sapply(features, "[[", 3),
+  pos = sapply(features, "[[", 1), 
+  weight = sapply(features, "[[", 3), 
   sapply(features, class)[1, ]);
 gg <- ggplot(df.site, aes(x = pos, y = dens));
 gg <- gg + geom_line();
@@ -160,9 +160,9 @@ range <- 5000;
 xpeak <- which.max(df.site$dens);   # Position of largest peak
 gg <- ggplot(df.site[xpeak - seq(-range, range), ]);
 gg <- gg + geom_line(aes(x = pos, y = dens));
-gg <- gg + geom_step(data = df2[which(abs(df2$pos - xpeak) <= range), ],
-                     aes(x = pos, y = weight),
-                     colour = "red",
+gg <- gg + geom_step(data = df2[which(abs(df2$pos - xpeak) <= range), ], 
+                     aes(x = pos, y = weight), 
+                     colour = "red", 
                      alpha = 0.5);
 gg <- gg + theme_bw();
 gg <- gg + labs(
@@ -181,10 +181,10 @@ fragLength <- function(x, minLength, maxLength, meanLength, ...) {
 
 ## ------------------------------------------------------------------------
 readDens <- ChIPsim::bindDens2readDens(
-  dens,
-  fragLength,
-  bind = 50,
-  minLength = 150,
+  dens, 
+  fragLength, 
+  bind = 50, 
+  minLength = 150, 
   maxLength = 250,
   meanLength = 200);
 
@@ -196,8 +196,8 @@ df.DNA <- cbind.data.frame(
 colnames(df.DNA)[2:3] <- c("positive", "negative");
 df.DNA <- melt(df.DNA, id.vars = "pos");
 df <- rbind.data.frame(
-  cbind.data.frame(pos = df.site$pos,
-                   variable = "bindingSite",
+  cbind.data.frame(pos = df.site$pos, 
+                   variable = "bindingSite", 
                    value = df.site$dens),
   df.DNA);
 gg <- ggplot(subset(df, abs(pos - xpeak) <= range));
@@ -215,24 +215,32 @@ readLoc <- ChIPsim::sampleReads(readDens, nreads = 1e5);
 
 ## ------------------------------------------------------------------------
 randomQualityPhred33 <- function(read, ...) {
+  # Character vector of symbols for the Phred+33 quality encoding scale
   rangePhred33 <- unlist(strsplit(rawToChar(as.raw(33:126)), ""));
+  # Uniform-randomly sample qualities
   paste(sample(rangePhred33, length(read), replace = TRUE), collapse = "");
 }
 
 ## ------------------------------------------------------------------------
+# Read length
+readLength <- 100;
+
+# We need to make sure that readLoc + readLen <= refLength for both strands
+readLoc[[1]] <- readLoc[[1]][which(readLoc[[1]] + readLength <= refLength)];
+readLoc[[2]] <- readLoc[[1]][which(readLoc[[1]] - readLength > 0)];
+
+# Create names
 nreads <- sapply(readLoc, length);
 names <- list(fwd = sprintf("read_fwd_%s", seq(nreads[1])),
               rev = sprintf("read_rev_%s", seq(nreads[2])));
-#pos2fastq(readLoc,
+
+# Write to FASTQ
+# Uncomment for output
+#pos2fastq(readLoc, 
 #          names = names,
 #          sequence = genome[[1]],
-#          qualityFun = randomQualityPhred33,
+#          qualityFun = randomQualityPhred33, 
 #          errorFun = readError,
+#          readLen = readLength,
 #          file = "TF_ChIP_MT.fastq");
 
-fastq <- pos2fastq(readLoc,
-          names = names,
-          sequence = genome[[1]],
-          qualityFun = randomQualityPhred33,
-          errorFun = readError,
-          file = "");
