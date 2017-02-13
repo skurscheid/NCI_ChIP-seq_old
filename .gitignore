@@ -1,6 +1,9 @@
 # Reference sequences
 ref
 
-# Raw data
-rawData
+# Snakemake files
+.snakemake
+
+# R history and project files
+.Rhistory
 .Rproj.user
