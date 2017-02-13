@@ -28,7 +28,7 @@ workdir: config["basedir"]
 
 # Reference sequence
 REF = expand(join(config["refdir"], "{path}.fa.gz"),
-    path = [x + "/" + y \
+    path = [x + "/" + x + "_" + y \
         for x in config["reference"].keys() \
             for y in config["reference"][x].keys()])
 
