@@ -240,7 +240,7 @@ gg <- gg + labs(
 ggsave(
     filename = sprintf("distr_binding_site_strength_%s.pdf", outputName),
     width = 8,
-    height = 8,
+    height = 4,
     gg);
 
 
@@ -262,7 +262,7 @@ featureDensity.Background <- function(feature, ...) {
 
 ## ------------------------------------------------------------------------
 ## Convert features to densities
-cat(sprintf("%s Converting features to densities...\n", ts()));
+cat(sprintf("%s Converting features to site densities...\n", ts()));
 dens <- ChIPsim::feat2dens(features, length = refLength);
 
 
