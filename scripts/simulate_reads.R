@@ -33,10 +33,16 @@ option_list <- list(
         help = "Reference fasta file (fa. or .fa.gz)",
         metavar = "character"),
     make_option(
-        c("-o", "--out"),
+        c("-n", "--name"),
         type = "character",
         default = "ChIPsim",
-        help = "Output name (without file extension)",
+        help = "Identifier of simulation [default %default]",
+        metavar = "character"),
+    make_option(
+        c("-o", "--outdir"),
+        type = "character",
+        default = "rawData",
+        help = "Output directory [default %default]",
         metavar = "character"),
     make_option(
         c("--seed"),
@@ -105,10 +111,11 @@ ts <- function() {
 ## ------------------------------------------------------------------------
 ## Global variables
 genome <- args$ref;
+simName <- args$name;
+outdir <- args$outdir;
 seed <- args$seed;
 backgroundLength <- args$backLength;
 bindingLength <- args$bindLength;
-outputName <- args$out;
 meanFragmentLength <- args$meanFragLength;
 minFragmentLength <- args$minFragLength;
 maxFragmentLength <- args$maxFragLength;
@@ -116,7 +123,7 @@ readLength <- args$readLength;
 nReads <- args$nReads;
 cat(sprintf("%s Parameter summary\n", ts()));
 cat(sprintf(" Reference          = %s\n", genome));
-cat(sprintf(" outputName         = %s\n", outputName));
+cat(sprintf(" outdir             = %s\n", outdir));
 cat(sprintf(" seed               = %s\n", seed));
 cat(sprintf(" bindingLength      = %i\n", bindingLength));
 cat(sprintf(" backgroundLength   = %i\n", backgroundLength));
@@ -238,7 +245,10 @@ gg <- gg + labs(
         nBinding,
         nBackground));
 ggsave(
-    filename = sprintf("distr_binding_site_strength_%s.pdf", outputName),
+    filename = sprintf(
+        "%s/%s/distr_binding_site_strength.pdf",
+        outdir,
+        simName),
     width = 8,
     height = 4,
     gg);
@@ -309,8 +319,8 @@ readLoc[[2]] <- readLoc[[1]][which(readLoc[[1]] - readLength > 0)];
 
 # Create names
 nreads <- sapply(readLoc, length);
-names <- list(fwd = sprintf("read_%s_fwd_%s", outputName, seq(nreads[1])),
-              rev = sprintf("read_%s_rev_%s", outputName, seq(nreads[2])));
+names <- list(fwd = sprintf("read_%s_fwd_%s", simName, seq(nreads[1])),
+              rev = sprintf("read_%s_rev_%s", simName, seq(nreads[2])));
 
 # Write to FASTQ
 # Uncomment for output
@@ -321,7 +331,7 @@ pos2fastq(readLoc,
           qualityFun = randomQualityPhred33,
           errorFun = readError,
           readLen = readLength,
-          file = sprintf("simul_%s.fastq", outputName));
+          file = sprintf("%s/%s/simul_reads.fastq", outdir, simName));
 
 
 ## ------------------------------------------------------------------------
