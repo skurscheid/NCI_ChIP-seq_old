@@ -45,6 +45,18 @@ option_list <- list(
         help = "Output directory [default %default]",
         metavar = "character"),
     make_option(
+        c("--bindProb"),
+        type = "double",
+        default = 0.05,
+        help = "P(binding|background) in MC model [default %default]",
+        metavar = "double"),
+    make_option(
+        c("--backProb"),
+        type = "double",
+        default = 0.95,
+        help = "P(background|background) in MC model [default %default]",
+        metavar = "double"),
+    make_option(
         c("--seed"),
         type = "integer",
         default = NULL,
@@ -113,6 +125,8 @@ ts <- function() {
 genome <- args$ref;
 simName <- args$name;
 outdir <- args$outdir;
+Pbind_given_back <- args$bindProb;
+Pback_given_back <- args$backProb;
 seed <- args$seed;
 backgroundLength <- args$backLength;
 bindingLength <- args$bindLength;
@@ -152,7 +166,7 @@ if (refLength < backgroundLength + bindingLength) {
 ## Define transition probabilities and initial state
 transition <- list(
     Binding = c(Background = 1),
-    Background = c(Binding = 0.05, Background = 0.95)
+    Background = c(Binding = Pbind_given_back, Background = Pback_given_back)
 );
 transition <- lapply(transition, "class<-", "StateDistribution");
 init <- c(Binding = 0, Background = 1);
