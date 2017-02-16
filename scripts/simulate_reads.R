@@ -247,8 +247,8 @@ nBackground <- t[which(names(t) == "Background")];
 cat(sprintf("%s Results of MC model\n", ts()));
 cat(sprintf(" %10i binding sites\n", nBinding));
 cat(sprintf(" %10i background sites\n", nBackground));
-if (nBinding < 3 & Pbind_given_back > 0) {
-    stop("MC model gave <=2 binding sites. Decrease binding site lengths or change reference.\n", call. = FALSE);
+if (nBinding < 1 & Pbind_given_back > 0) {
+    stop("MC model gave <1 binding sites. Decrease binding site lengths or change reference.\n", call. = FALSE);
 }
 
 
