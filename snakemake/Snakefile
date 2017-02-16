@@ -1,9 +1,9 @@
-# Snakemake workflow for the analysis of ChIP-seq data
+# Snakemake workflow for the simulation and analysis of ChIP-seq data
 #
 # Author: Maurits Evers
 # License: GPLv3
-# Original date: 14-10-2016
-# Last changed: 23-10-2016
+# Original date: 13-02-2016
+# Last changed: 16-02-2016
 
 from os.path import join
 import re
@@ -26,22 +26,30 @@ workdir: config["basedir"]
 ######################### Targets #####################
 #######################################################
 
-# Reference sequence
+# Target: Reference sequence
 REF = expand(join(config["refdir"], "{path}.fa.gz"),
-    path = [x + "/" + x + "_" + y \
+    path = [x + "/" + y \
         for x in config["reference"].keys() \
             for y in config["reference"][x].keys()])
 
-#for x in REF:
-#    message("Reference " + x)
+# Target: FASTQ files
+FASTQ = expand(join(config["rawdir"], "simul", "{path}/reads_{simName}_rep{idxRep}.fastq"), \
+    path = [x + "/" + y \
+        for x in config["reference"].keys() \
+            for y in config["reference"][x].keys()],
+    simName = ["TFChIP"],
+    idxRep = range(1, config["ChIPsim"]["nReps"] + 1))
+
+#for x in FASTQ:
+#    message("Target " + x)
+
 
 #######################################################
 ###################### Includes #######################
 #######################################################
 
-#include: "rules/mhs_data.rules"
 include: "rules/reference.rules"
-
+include: "rules/simulate_reads.rules"
 
 #######################################################
 ######################## Rules ########################
@@ -50,4 +58,4 @@ include: "rules/reference.rules"
 # Input fastq files
 rule all:
     input:
-        REF
+        FASTQ

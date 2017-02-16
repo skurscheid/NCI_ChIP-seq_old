@@ -7,3 +7,7 @@ ref
 # R history and project files
 .Rhistory
 .Rproj.user
+
+# Raw and reference data
+rawData
+ref

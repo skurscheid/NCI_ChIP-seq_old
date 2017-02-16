@@ -1,0 +1,39 @@
+# Snakemake rules to generate simulated
+# read data
+#
+# Author: Maurits Evers
+# License: GPLv3
+# Original date: 16-10-2016
+# Last changed: 16-02-2017
+
+# Input is a fastq.gz reference sequence
+# Output is a set of (replicate) fastq files
+# Note: The number of replicates (nReps) is taken from config.yaml,
+# so we need to dynamically determine output files based on nReps
+rule simulate_ChIP_reads:
+    input:
+        join(config["refdir"], "{version}", "{chr}.fa.gz")
+    output:
+        expand(join(config["rawdir"], \
+            "simul/{{version}}/{{chr}}/reads_{{simName}}_rep{idxRep}.fastq"), \
+            idxRep = range(1, config["ChIPsim"]["nReps"] + 1))
+    log:
+        "logs/simulate_ChIP_reads_{version}_{chr}_{simName}.log"
+    params:
+        cmd     = config["ChIPsim"]["cmd"],
+        outdir  = join(config["rawdir"], "simul", "{version}/{chr}"),
+        simName = "{simName}",
+        EF      = config["ChIPsim"]["EF"],
+        seed    = "1234",
+        nReps   = config["ChIPsim"]["nReps"]
+    version: "1.0"
+    shell:
+        """
+            {params.cmd} \
+            -r {input} \
+            --EF {params.EF} \
+            --seed {params.seed} \
+            --outdir {params.outdir} \
+            --simName {params.simName} \
+            --nReps {params.nReps} &> {log}
+        """

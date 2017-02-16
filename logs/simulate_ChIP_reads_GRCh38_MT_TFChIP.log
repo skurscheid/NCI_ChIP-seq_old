@@ -1,0 +1,31 @@
+[Thu Feb 16 2017 15:46:24] Parameter summary
+ Reference          = ref/GRCh38/MT.fa.gz
+ name               = TFChIP
+ outdir             = rawData/simul/GRCh38/MT
+ seed               = 1234
+ Pbind_given_back   = 0.050000
+ Pback_given_back   = 0.950000
+ EF                 = 5.000000
+ bindingLength      = 50
+ backgroundLength   = 500
+ meanFragmentLength = 200
+ minFragmentLength  = 150
+ maxFragmentLength  = 250
+ readLength         = 75
+ nReads             = 100000
+ nReps              = 2
+[Thu Feb 16 2017 15:46:24] Read reference sequence "MT dna:chromosome chromosome:GRCh38:MT:1:16569:1 REF" of length 16569
+[Thu Feb 16 2017 15:46:24] Set fixed seed 1234
+[Thu Feb 16 2017 15:46:24] Running MC model...
+[Thu Feb 16 2017 15:46:24] Results of MC model
+          1 binding sites
+         33 background sites
+[Thu Feb 16 2017 15:46:24] Storing TF binding sites in BED file...
+[Thu Feb 16 2017 15:46:24] Converting features to site densities...
+[Thu Feb 16 2017 15:46:24] Converting site densities to DNA fragment densities...
+[Thu Feb 16 2017 15:46:25] Sampling reads for 2 replicates...
+[Thu Feb 16 2017 15:46:25] Writing reads of rep 1 to fastq file...
+[Thu Feb 16 2017 15:48:17] Writing reads of rep 2 to fastq file...
+Warning message:
+closing unused connection 3 (rawData/simul/GRCh38/MT/reads_TFChIP_rep1.fastq) 
+[Thu Feb 16 2017 15:50:11] Done (time elapsed 3.845162 mins)

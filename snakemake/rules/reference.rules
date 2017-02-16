@@ -3,7 +3,7 @@
 #
 # Author: Maurits Evers
 # License: GPLv3
-# Original date: 14-10-2016
+# Original date: 13-02-2016
 # Last changed: 13-02-2017
 
 localrules:
@@ -13,7 +13,7 @@ localrules:
 rule download_reference:
     input:
     output:
-        join(config["refdir"], "{version}", "{version}_{chr}.fa.gz")
+        join(config["refdir"], "{version}", "{chr}.fa.gz")
     params:
         cmd  = "curl",
         URL  = lambda wildcards: expand("{url}", url = config["reference"][wildcards.version][wildcards.chr])
