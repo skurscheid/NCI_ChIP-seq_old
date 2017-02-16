@@ -33,7 +33,7 @@ option_list <- list(
         help = "Reference fasta file (fa. or .fa.gz)",
         metavar = "character"),
     make_option(
-        c("-n", "--name"),
+        c("--name"),
         type = "character",
         default = "ChIPsim",
         help = "Identifier of simulation [default %default]",
@@ -137,8 +137,11 @@ readLength <- args$readLength;
 nReads <- args$nReads;
 cat(sprintf("%s Parameter summary\n", ts()));
 cat(sprintf(" Reference          = %s\n", genome));
+cat(sprintf(" name               = %s\n", simName));
 cat(sprintf(" outdir             = %s\n", outdir));
 cat(sprintf(" seed               = %s\n", seed));
+cat(sprintf(" Pbind_given_back   = %f\n", Pbind_given_back))
+cat(sprintf(" Pback_given_back   = %f\n", Pback_given_back))
 cat(sprintf(" bindingLength      = %i\n", bindingLength));
 cat(sprintf(" backgroundLength   = %i\n", backgroundLength));
 cat(sprintf(" meanFragmentLength = %i\n", meanFragmentLength));
@@ -235,9 +238,30 @@ nBackground <- t[which(names(t) == "Background")];
 cat(sprintf("%s Results of MC model\n", ts()));
 cat(sprintf(" %10i binding sites\n", nBinding));
 cat(sprintf(" %10i background sites\n", nBackground));
-if (nBinding < 3) {
+if (nBinding < 3 & Pbind_given_back > 0) {
     stop("MC model gave <=2 binding sites. Decrease binding site lengths or change reference.\n", call. = FALSE);
 }
+
+
+## ------------------------------------------------------------------------
+## Store binding sites in BED file
+cat(sprintf("%s Storing TF binding sites in BED file...\n", ts()));
+chr <- unlist(strsplit(names(genome), " "))[1];
+bindFeat <- features[sapply(features, class)[1, ] == "Binding"];
+df.BED <- cbind.data.frame(
+    chr = rep(chr, length(bindFeat)),
+    start = sapply(bindFeat, "[[", 1) - 1,
+    end = sapply(bindFeat, "[[", 1) + sapply(bindFeat, "[[", 2),
+    name = sprintf("bindFeat_%s_%i", simName, seq(1, length(bindFeat))),
+    score = sapply(bindFeat, "[[", 3),
+    strand = rep(".", length(bindFeat)));
+write.table(
+    df.BED,
+    file = sprintf("%s/%s/bindingSites.bed", outdir, simName),
+    quote = FALSE,
+    sep = "\t",
+    col.names = FALSE,
+    row.names = FALSE);
 
 
 ## ------------------------------------------------------------------------
@@ -337,17 +361,21 @@ names <- list(fwd = sprintf("read_%s_fwd_%s", simName, seq(nreads[1])),
               rev = sprintf("read_%s_rev_%s", simName, seq(nreads[2])));
 
 # Write to FASTQ
-# Uncomment for output
 cat(sprintf("%s Writing reads to fastq file...\n", ts()));
+filename.FASTQ <- sprintf("%s/%s/simul_reads.fastq", outdir, simName);
+if (file.exists(filename.FASTQ)) {
+    file.remove(filename.FASTQ);
+}
 pos2fastq(readLoc,
           names = names,
           sequence = genome[[1]],
           qualityFun = randomQualityPhred33,
           errorFun = readError,
           readLen = readLength,
-          file = sprintf("%s/%s/simul_reads.fastq", outdir, simName));
+          file = filename.FASTQ);
 
 
 ## ------------------------------------------------------------------------
 ## Done
-cat(sprintf("%s Done (time elapsed %s)\n", ts(), format(Sys.time() - t0)));
+runTime <- paste("time elapsed", format(Sys.time() - t0));
+cat(sprintf("%s Done (%s)\n", ts(), runTime));
