@@ -57,6 +57,12 @@ option_list <- list(
         help = "P(background|background) in MC model [default %default]",
         metavar = "double"),
     make_option(
+        c("--enrichmentFactor"),
+        type = "double",
+        default = 5,
+        help = "Enrichment factor of mean(TF binding)/mean(Background binding) [default %default]",
+        metavar = "double"),
+    make_option(
         c("--seed"),
         type = "integer",
         default = NULL,
@@ -127,6 +133,7 @@ simName <- args$name;
 outdir <- args$outdir;
 Pbind_given_back <- args$bindProb;
 Pback_given_back <- args$backProb;
+enrichmentFactor <- args$enrichmentFactor;
 seed <- args$seed;
 backgroundLength <- args$backLength;
 bindingLength <- args$bindLength;
@@ -140,8 +147,9 @@ cat(sprintf(" Reference          = %s\n", genome));
 cat(sprintf(" name               = %s\n", simName));
 cat(sprintf(" outdir             = %s\n", outdir));
 cat(sprintf(" seed               = %s\n", seed));
-cat(sprintf(" Pbind_given_back   = %f\n", Pbind_given_back))
-cat(sprintf(" Pback_given_back   = %f\n", Pback_given_back))
+cat(sprintf(" Pbind_given_back   = %f\n", Pbind_given_back));
+cat(sprintf(" Pback_given_back   = %f\n", Pback_given_back));
+cat(sprintf(" enrichmentFactor   = %f\n", enrichmentFactor));
 cat(sprintf(" bindingLength      = %i\n", bindingLength));
 cat(sprintf(" backgroundLength   = %i\n", backgroundLength));
 cat(sprintf(" meanFragmentLength = %i\n", meanFragmentLength));
@@ -226,6 +234,7 @@ features <- ChIPsim::placeFeatures(
     start = 0,
     length = refLength,
     globals = list(shape = 1, scale = 20),
+    control = list(Binding = list(enrichment = enrichmentFactor)),
     experimentType = "TFExperiment",
     lastFeat = c(Binding = FALSE, Background = TRUE));
 
@@ -257,7 +266,7 @@ df.BED <- cbind.data.frame(
     strand = rep(".", length(bindFeat)));
 write.table(
     df.BED,
-    file = sprintf("%s/%s/bindingSites.bed", outdir, simName),
+    file = sprintf("%s/bindingSites.bed", outdir),
     quote = FALSE,
     sep = "\t",
     col.names = FALSE,
@@ -284,9 +293,8 @@ gg <- gg + labs(
         nBackground));
 ggsave(
     filename = sprintf(
-        "%s/%s/distr_binding_site_strength.pdf",
-        outdir,
-        simName),
+        "%s/distr_binding_site_strength.pdf",
+        outdir),
     width = 8,
     height = 4,
     gg);
@@ -362,7 +370,7 @@ names <- list(fwd = sprintf("read_%s_fwd_%s", simName, seq(nreads[1])),
 
 # Write to FASTQ
 cat(sprintf("%s Writing reads to fastq file...\n", ts()));
-filename.FASTQ <- sprintf("%s/%s/simul_reads.fastq", outdir, simName);
+filename.FASTQ <- sprintf("%s/simul_reads.fastq", outdir);
 if (file.exists(filename.FASTQ)) {
     file.remove(filename.FASTQ);
 }
