@@ -35,7 +35,7 @@ option_list <- list(
     make_option(
         c("--name"),
         type = "character",
-        default = "ChIPsim",
+        default = "test",
         help = "Identifier of simulation [default %default]",
         metavar = "character"),
     make_option(
@@ -57,7 +57,7 @@ option_list <- list(
         help = "P(background|background) in MC model [default %default]",
         metavar = "double"),
     make_option(
-        c("--enrichmentFactor"),
+        c("--EF"),
         type = "double",
         default = 5,
         help = "Enrichment factor of mean(TF binding)/mean(Background binding) [default %default]",
@@ -109,6 +109,12 @@ option_list <- list(
         type = "integer",
         default = 1e5,
         help = "Number of reads [default %default]",
+        metavar = "integer"),
+    make_option(
+        c("--nReps"),
+        type = "integer",
+        default = 3,
+        help = "Number of replicates [default %default]",
         metavar = "integer")
     );
 opt_parser <- OptionParser(option_list = option_list);
@@ -133,7 +139,7 @@ simName <- args$name;
 outdir <- args$outdir;
 Pbind_given_back <- args$bindProb;
 Pback_given_back <- args$backProb;
-enrichmentFactor <- args$enrichmentFactor;
+EF <- args$EF;
 seed <- args$seed;
 backgroundLength <- args$backLength;
 bindingLength <- args$bindLength;
@@ -142,6 +148,7 @@ minFragmentLength <- args$minFragLength;
 maxFragmentLength <- args$maxFragLength;
 readLength <- args$readLength;
 nReads <- args$nReads;
+nReps <- args$nRreps;
 cat(sprintf("%s Parameter summary\n", ts()));
 cat(sprintf(" Reference          = %s\n", genome));
 cat(sprintf(" name               = %s\n", simName));
@@ -149,7 +156,7 @@ cat(sprintf(" outdir             = %s\n", outdir));
 cat(sprintf(" seed               = %s\n", seed));
 cat(sprintf(" Pbind_given_back   = %f\n", Pbind_given_back));
 cat(sprintf(" Pback_given_back   = %f\n", Pback_given_back));
-cat(sprintf(" enrichmentFactor   = %f\n", enrichmentFactor));
+cat(sprintf(" EF                 = %f\n", EF));
 cat(sprintf(" bindingLength      = %i\n", bindingLength));
 cat(sprintf(" backgroundLength   = %i\n", backgroundLength));
 cat(sprintf(" meanFragmentLength = %i\n", meanFragmentLength));
@@ -157,6 +164,7 @@ cat(sprintf(" minFragmentLength  = %i\n", minFragmentLength));
 cat(sprintf(" maxFragmentLength  = %i\n", maxFragmentLength));
 cat(sprintf(" readLength         = %i\n", readLength));
 cat(sprintf(" nReads             = %i\n", nReads));
+cat(sprintf(" nReps              = %i\n", nReps));
 
 
 ## ------------------------------------------------------------------------
@@ -234,7 +242,7 @@ features <- ChIPsim::placeFeatures(
     start = 0,
     length = refLength,
     globals = list(shape = 1, scale = 20),
-    control = list(Binding = list(enrichment = enrichmentFactor)),
+    control = list(Binding = list(enrichment = EF)),
     experimentType = "TFExperiment",
     lastFeat = c(Binding = FALSE, Background = TRUE));
 
@@ -243,7 +251,9 @@ features <- ChIPsim::placeFeatures(
 ## Stop if less <=2 binding sites
 t <- table(sapply(features, class));
 nBinding <- t[which(names(t) == "Binding")];
+nBinding <- ifelse(length(nBinding) == 0, 0, nBinding);
 nBackground <- t[which(names(t) == "Background")];
+nBackground <- ifelse(length(nBackground) == 0, 0, nBackground);
 cat(sprintf("%s Results of MC model\n", ts()));
 cat(sprintf(" %10i binding sites\n", nBinding));
 cat(sprintf(" %10i background sites\n", nBackground));
@@ -345,42 +355,47 @@ readDens <- ChIPsim::bindDens2readDens(
 
 
 ## ------------------------------------------------------------------------
-## Sample reads
-cat(sprintf("%s Sampling reads...\n", ts()));
-readLoc <- ChIPsim::sampleReads(readDens, nreads = 1e5);
+## Define uniform read quality function
+randomQualityPhred33 <- function(read, ...) {
+    # Character vector of symbols for the Phred+33 quality encoding scale
+    rangePhred33 <- unlist(strsplit(rawToChar(as.raw(33:126)), ""));
+    # Uniform-randomly sample qualities
+    paste(sample(rangePhred33, length(read), replace = TRUE), collapse = "");
+}
 
 
 ## ------------------------------------------------------------------------
-## Define uniform read quality function
-randomQualityPhred33 <- function(read, ...) {
-  # Character vector of symbols for the Phred+33 quality encoding scale
-  rangePhred33 <- unlist(strsplit(rawToChar(as.raw(33:126)), ""));
-  # Uniform-randomly sample qualities
-  paste(sample(rangePhred33, length(read), replace = TRUE), collapse = "");
+## Sample reads for every replicate
+for (i in 1:nReps) {
+    # Sample reads
+    cat(sprintf("%s Sampling reads...\n", ts()));
+    readLoc <- ChIPsim::sampleReads(readDens, nreads = 1e5);
+
+    # We need to make sure that readLoc + readLen <= refLength for both strands
+    readLoc[[1]] <- readLoc[[1]][which(readLoc[[1]] + readLength <= refLength)];
+    readLoc[[2]] <- readLoc[[1]][which(readLoc[[1]] - readLength > 0)];
+
+    # Create names
+    nreads <- sapply(readLoc, length);
+    names <- list(
+        fwd = sprintf("read_%s_rep%i_fwd_%s", simName, seq(nreads[1]), i),
+        rev = sprintf("read_%s_rep%i_rev_%s", simName, seq(nreads[2]), i));
+
+    # Write to FASTQ
+    cat(sprintf("%s Writing reads to fastq file...\n", ts()));
+    filename.FASTQ <- sprintf("%s/simul_reads_rep%i.fastq", outdir, i);
+    if (file.exists(filename.FASTQ)) {
+        file.remove(filename.FASTQ);
+    }
+    pos2fastq(
+        readLoc,
+        names = names,
+        sequence = genome[[1]],
+        qualityFun = randomQualityPhred33,
+        errorFun = readError,
+        readLen = readLength,
+        file = filename.FASTQ);
 }
-
-# We need to make sure that readLoc + readLen <= refLength for both strands
-readLoc[[1]] <- readLoc[[1]][which(readLoc[[1]] + readLength <= refLength)];
-readLoc[[2]] <- readLoc[[1]][which(readLoc[[1]] - readLength > 0)];
-
-# Create names
-nreads <- sapply(readLoc, length);
-names <- list(fwd = sprintf("read_%s_fwd_%s", simName, seq(nreads[1])),
-              rev = sprintf("read_%s_rev_%s", simName, seq(nreads[2])));
-
-# Write to FASTQ
-cat(sprintf("%s Writing reads to fastq file...\n", ts()));
-filename.FASTQ <- sprintf("%s/simul_reads.fastq", outdir);
-if (file.exists(filename.FASTQ)) {
-    file.remove(filename.FASTQ);
-}
-pos2fastq(readLoc,
-          names = names,
-          sequence = genome[[1]],
-          qualityFun = randomQualityPhred33,
-          errorFun = readError,
-          readLen = readLength,
-          file = filename.FASTQ);
 
 
 ## ------------------------------------------------------------------------
