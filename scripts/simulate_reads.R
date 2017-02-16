@@ -370,7 +370,7 @@ randomQualityPhred33 <- function(read, ...) {
 cat(sprintf("%s Sampling reads for %i replicates...\n", ts(), nReps));
 for (i in 1:nReps) {
     # Sample reads
-    readLoc <- ChIPsim::sampleReads(readDens, nreads = 1e5);
+    readLoc <- ChIPsim::sampleReads(readDens, nreads = nReads);
 
     # We need to make sure that readLoc + readLen <= refLength for both strands
     readLoc[[1]] <- readLoc[[1]][which(readLoc[[1]] + readLength <= refLength)];
