@@ -33,7 +33,7 @@ option_list <- list(
         help = "Reference fasta file (fa. or .fa.gz)",
         metavar = "character"),
     make_option(
-        c("--name"),
+        c("--simName"),
         type = "character",
         default = "test",
         help = "Identifier of simulation [default %default]",
@@ -135,7 +135,7 @@ ts <- function() {
 ## ------------------------------------------------------------------------
 ## Global variables
 genome <- args$ref;
-simName <- args$name;
+simName <- args$simName;
 outdir <- args$outdir;
 Pbind_given_back <- args$bindProb;
 Pback_given_back <- args$backProb;
@@ -148,7 +148,7 @@ minFragmentLength <- args$minFragLength;
 maxFragmentLength <- args$maxFragLength;
 readLength <- args$readLength;
 nReads <- args$nReads;
-nReps <- args$nRreps;
+nReps <- args$nReps;
 cat(sprintf("%s Parameter summary\n", ts()));
 cat(sprintf(" Reference          = %s\n", genome));
 cat(sprintf(" name               = %s\n", simName));
@@ -276,7 +276,7 @@ df.BED <- cbind.data.frame(
     strand = rep(".", length(bindFeat)));
 write.table(
     df.BED,
-    file = sprintf("%s/bindingSites.bed", outdir),
+    file = sprintf("%s/bindingSites_%s.bed", outdir, simName),
     quote = FALSE,
     sep = "\t",
     col.names = FALSE,
@@ -303,8 +303,9 @@ gg <- gg + labs(
         nBackground));
 ggsave(
     filename = sprintf(
-        "%s/distr_binding_site_strength.pdf",
-        outdir),
+        "%s/distr_binding_site_strength_%s.pdf",
+        outdir,
+        simName),
     width = 8,
     height = 4,
     gg);
@@ -366,9 +367,9 @@ randomQualityPhred33 <- function(read, ...) {
 
 ## ------------------------------------------------------------------------
 ## Sample reads for every replicate
+cat(sprintf("%s Sampling reads for %i replicates...\n", ts(), nReps));
 for (i in 1:nReps) {
     # Sample reads
-    cat(sprintf("%s Sampling reads...\n", ts()));
     readLoc <- ChIPsim::sampleReads(readDens, nreads = 1e5);
 
     # We need to make sure that readLoc + readLen <= refLength for both strands
@@ -378,12 +379,16 @@ for (i in 1:nReps) {
     # Create names
     nreads <- sapply(readLoc, length);
     names <- list(
-        fwd = sprintf("read_%s_rep%i_fwd_%s", simName, seq(nreads[1]), i),
-        rev = sprintf("read_%s_rep%i_rev_%s", simName, seq(nreads[2]), i));
+        fwd = sprintf("read_%s_rep%i_fwd_%s", simName, i, seq(nreads[1])),
+        rev = sprintf("read_%s_rep%i_rev_%s", simName, i, seq(nreads[2])));
 
     # Write to FASTQ
-    cat(sprintf("%s Writing reads to fastq file...\n", ts()));
-    filename.FASTQ <- sprintf("%s/simul_reads_rep%i.fastq", outdir, i);
+    cat(sprintf("%s Writing reads of rep %i to fastq file...\n", ts(), i));
+    filename.FASTQ <- sprintf(
+        "%s/reads_%s_rep%i.fastq",
+        outdir,
+        simName,
+        i);
     if (file.exists(filename.FASTQ)) {
         file.remove(filename.FASTQ);
     }
