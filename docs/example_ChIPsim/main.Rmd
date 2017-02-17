@@ -10,13 +10,15 @@ output:
     number_sections: true
     theme: united
     df_print: paged
+#    highlight: tango
+    highlight: pygments
 ---
 
 <script type="text/x-mathjax-config">
 MathJax.Hub.Config({
   TeX: { equationNumbers: { autoNumber: "all" } }
 });
-</script> 
+</script>
 
 
 ```{r setup, include=FALSE}
@@ -45,7 +47,7 @@ suppressMessages(library(reshape2));    # For melt (convert wide df to long df)
 set.seed(1234);
 ```
 
-We simulate transcription factor ChIP-seq reads from the human GRCh38 mitochondrial DNA sequence. We need to read in the reference sequence in order to estimate the size of the reference. 
+We simulate transcription factor ChIP-seq reads from the human GRCh38 mitochondrial DNA sequence. We need to read in the reference sequence in order to estimate the size of the reference.
 ```{r}
 genome <- readDNAStringSet("GRCh38_MT.fa.gz");
 refLength <- width(genome);
@@ -88,7 +90,7 @@ class(init) <- "StateDistribution";
 
 # Background and binding region characterisation
 
-## Sampling weight distributions 
+## Sampling weight distributions
 We now define two functions that characterise the background and binding regions.
 
 <span style="color:darkgreen">**Comment:** Two critical parameters here are the length of a background and binding region. See my comment in section 4.2 about the possible error in `ChIPsim::placeFeatures`.</span>
@@ -189,7 +191,7 @@ features <- ChIPsim::placeFeatures(
 
 Here we make the following assumptions:
 
-1. We model background and binding regions in the spatial interval [0, `r width(genome)`] bp. 
+1. We model background and binding regions in the spatial interval [0, `r width(genome)`] bp.
 2. We ensure that shape and scale parameters are consistent across the background and binding region sampling weight distributions. with matching conditions as defined in Eq. $\eqref{eq:matchingCondition}$.
 3. We also require that the last feature is a background region.
 
@@ -235,7 +237,7 @@ The command `ChIPsim::feat2dens` is a wrapper function around the functions `ChI
 
 We can now translate background and binding regions into a reference-wide binding site density. To do so we must first define two method functions (one for binding sites and one for background sites) that characterise the distribution of the sampling weights across the region.
 
-We define binding site densities such that a transcription factor binding site is represented by a single peak of height $w_\text{binding} \times L_\text{binding}$ at the centre $x_0$ of the binding region 
+We define binding site densities such that a transcription factor binding site is represented by a single peak of height $w_\text{binding} \times L_\text{binding}$ at the centre $x_0$ of the binding region
 \begin{equation}
 \rho(x)^\text{Binding} = w_\text{Binding}\times L_\text{binding}\times\delta(x - x_0)\,,
 \end{equation}
@@ -266,16 +268,16 @@ We can now calculate binding site densities.
 ```{r}
 dens <- ChIPsim::feat2dens(features, length = refLength);
 ```
-Note that the defined method functions `featureDensity.Binding` and `featureDensity.Background` are based on the the S3 generic function `ChIPsim::featureDensity`, and are automatically called within `ChIPsim::feat2dens`. 
+Note that the defined method functions `featureDensity.Binding` and `featureDensity.Background` are based on the the S3 generic function `ChIPsim::featureDensity`, and are automatically called within `ChIPsim::feat2dens`.
 
 We plot the binding site density across the entire reference.
 ```{r}
 df.site <- cbind.data.frame(
-  pos = seq(1, length(dens)), 
+  pos = seq(1, length(dens)),
   dens = dens);
 df2 <- cbind.data.frame(
-  pos = sapply(features, "[[", 1), 
-  weight = sapply(features, "[[", 3), 
+  pos = sapply(features, "[[", 1),
+  weight = sapply(features, "[[", 3),
   sapply(features, class)[1, ]);
 gg <- ggplot(df.site, aes(x = pos, y = dens));
 gg <- gg + geom_line();
@@ -293,9 +295,9 @@ range <- 5000;
 xpeak <- which.max(df.site$dens);   # Position of largest peak
 gg <- ggplot(df.site[xpeak - seq(-range, range), ]);
 gg <- gg + geom_line(aes(x = pos, y = dens));
-gg <- gg + geom_step(data = df2[which(abs(df2$pos - xpeak) <= range), ], 
-                     aes(x = pos, y = weight), 
-                     colour = "red", 
+gg <- gg + geom_step(data = df2[which(abs(df2$pos - xpeak) <= range), ],
+                     aes(x = pos, y = weight),
+                     colour = "red",
                      alpha = 0.5);
 gg <- gg + theme_bw();
 gg <- gg + labs(
@@ -309,7 +311,7 @@ gg;
 
 <span style="color:darkgreen">**Comment:** According to the `ChIPsim` vignette, the function `ChIPsim::bindDens2readDens` generates read densities for the forward and reverse strand. I find this description ambiguous; in fact the function simulates *DNA fragment densities* from both strands. *Reads* are simulated in a subsequent step, using the functions `ChIPsim::sampleReads` and `ChIPsim::pos2fastq`. However to maintain consistency with the vignette description, I will continue to refer to "read densities" in the context of `ChIPsim::bindDens2readDens`.</span>
 
-## DNA fragment size distribution 
+## DNA fragment size distribution
 
 We first define a DNA fragment size distribution function. We parametrise the size distribution by a normal distribution, with a minimum, maximum and mean DNA size. We estimate the standard deviation of the normal size distribution from the range
 \begin{equation}
@@ -327,13 +329,13 @@ fragLength <- function(x, minLength, maxLength, meanLength, ...) {
 
 ## Read density distribution
 
-We can now generate read densities (better: DNA fragment densities) for the forward and reverse strand using the binding site densities `dens` and DNA fragment size distribution function `fragLength`. 
+We can now generate read densities (better: DNA fragment densities) for the forward and reverse strand using the binding site densities `dens` and DNA fragment size distribution function `fragLength`.
 ```{r}
 readDens <- ChIPsim::bindDens2readDens(
-  dens, 
-  fragLength, 
-  bind = 50, 
-  minLength = 150, 
+  dens,
+  fragLength,
+  bind = 50,
+  minLength = 150,
   maxLength = 250,
   meanLength = 200);
 ```
@@ -356,8 +358,8 @@ df.DNA <- cbind.data.frame(
 colnames(df.DNA)[2:3] <- c("positive", "negative");
 df.DNA <- melt(df.DNA, id.vars = "pos");
 df <- rbind.data.frame(
-  cbind.data.frame(pos = df.site$pos, 
-                   variable = "bindingSite", 
+  cbind.data.frame(pos = df.site$pos,
+                   variable = "bindingSite",
                    value = df.site$dens),
   df.DNA);
 gg <- ggplot(subset(df, abs(pos - xpeak) <= range));
@@ -405,10 +407,10 @@ names <- list(fwd = sprintf("read_fwd_%s", seq(nreads[1])),
 
 # Write to FASTQ
 # Uncomment for output
-#pos2fastq(readLoc, 
+#pos2fastq(readLoc,
 #          names = names,
 #          sequence = genome[[1]],
-#          qualityFun = randomQualityPhred33, 
+#          qualityFun = randomQualityPhred33,
 #          errorFun = readError,
 #          readLen = readLength,
 #          file = "TF_ChIP_MT.fastq");
@@ -416,3 +418,136 @@ names <- list(fwd = sprintf("read_fwd_%s", seq(nreads[1])),
 
 <span style="color:darkgreen">**Comment:** The function `ChIPsim::pos2fastq` does not automatically check if `readLoc + readLen <= refLength`, so we need to do this manually prior to calling `ChIPsim::pos2fastq`; the function generates sequencing errors based on an error model that performs single nucleotide substitutions depending on simulated read qualities. This seems to be the default mode. Lastly, output is written to a FASTQ file using the function `ChIPsim::writeFASTQ`, which unfortunately does not allow for gzip'ed FASTQ output. Best to not use `ChIPsim::pos2fastq`, and instead generate reads and read qualities manually, and write output to a gzipped FASTQ file using the `ShortRead` library.</span>
 
+
+# Appendix A: `bindDens2readDens` {.unnumbered}
+```{#numCode .R .numberLines}
+bindDens2readDens <- function(
+  bindDens, 
+  fragment, 
+  nfrag = 1e+05, 
+  bind = 147, 
+  minLength = 150, 
+  maxLength = 180, ...) {
+  fragSample <- sample(
+    (minLength:maxLength) - bind, 
+    nfrag,
+    replace = TRUE, 
+    prob = fragment(
+      (minLength:maxLength), 
+      minLength = minLength, 
+      maxLength = maxLength, 
+      bind = bind, 
+      ...))
+  step <- 1/(maxLength - bind + 1)
+  locDist <- bindLocDens(seq(0, 1, by = step))
+  readSample <- round(fragSample * sample(
+    seq(0, 1, by = step),
+    nfrag, 
+    prob = locDist, 
+    replace = TRUE))
+  readDist <- hist(
+    readSample, 
+    breaks = -1:(maxLength - bind + 1) + 0.5, 
+    plot = FALSE)$density
+  readDist <- readDist/sum(readDist)
+  readKernel <- c(rep(0, floor(bind * 0.5)), readDist)
+  readKernel <- c(
+    readKernel, 
+    rep(0, nextn(length(readKernel)) - length(readKernel)))
+  n <- length(bindDens)
+  bindDens <- c(
+    bindDens, 
+    rep(0, nextn(n + length(readKernel) - 1) - (n + length(readKernel) - 1)))
+  idx <- list((length(readDist) + floor(bind * 0.5) + 1):(n +
+        length(readDist) + floor(bind * 0.5)), 1:n)
+  readDens <- cbind(
+    convolve(bindDens, readKernel, type = "open")[idx[[1]]],
+    convolve(bindDens, rev(readKernel), type = "open")[idx[[2]]])
+  readDens <- apply(readDens, 2, function(x) ifelse(x < 0, 0, x))
+  readDens
+}
+```
+
+The function `bindDens2readDens` does the following:
+
+1. In lines 8-17 we draw `nfrag` samples with replacement from the population of DNA fragment sizes minus the binding site length, as defined by the sequence `(minLength:maxLength)-bind`. Samples are drawn with probabilities defined by the fragment size distribution `fragment`. In our case, the distribution of samples is a truncated normal distribution with mean `meanFragmentLength` bounded by `minLength = minFragmentLength` below and `maxLength = maxFragmentLength` above.  
+```{r}
+fragSample <- sample(
+  (150:250) - 50, 
+  1e5, 
+  replace = TRUE, 
+  prob = fragLength(150:250, 150, 250, 200));
+```
+```{r echo=FALSE, fig.height=4}
+df.fragSample <- cbind.data.frame(fragSize = fragSample);
+gg <- ggplot(df.fragSample, aes(x = fragSize));
+gg <- gg + geom_histogram(binwidth = 1, alpha = 0.5);
+gg <- gg + theme_bw();
+gg;
+```
+
+2. In lines 18, 19 `locDist` are the values of the pdf of distribution $\text{Beta}(\alpha = 2, \beta = 2)$ (as defined in `bindLocDens`), evaluated between 0 and 1 with step size `step`.
+```{r}
+step <- 1/(250 - 50 + 1);
+locDist <- bindLocDens(seq(0, 1, by = step));
+```
+```{r echo=FALSE, fig.height=4}
+df.locDist <- cbind.data.frame(
+  x = seq(0, 1, by = step),
+  y = locDist);
+gg <- ggplot(df.locDist, aes(x = x, y = y));
+gg <- gg + geom_line();
+gg <- gg + theme_bw();
+gg;
+```
+
+3. In lines 20-29 we generate `nfrag` read samples and extract the underlying pdf.
+```{r}
+readSample <- round(fragSample * sample(
+  seq(0, 1, by = step), 
+  1e5, 
+  replace = TRUE,
+  prob = locDist));
+readDist <- hist(
+  readSample, 
+  breaks = -1:(250 - 50 + 1) + 0.5, 
+  plot = FALSE)$density
+readDist <- readDist/sum(readDist)
+```
+```{r echo=FALSE, fig.height=4}
+df.readSample <- cbind.data.frame(readSample = readSample);
+gg <- ggplot(df.readSample, aes(x = readSample));
+gg <- gg + geom_histogram(binwidth = 1, alpha = 0.5);
+gg <- gg + theme_bw();
+gg;
+```
+
+4. In lines 30-33 we construct the kernel distribution from the read sample pdf `readSample` by shifting the distribution by `bind/2 = bindingLength/2 = 25` and padding with zeros.
+```{r}
+readKernel <- c(rep(0, floor(50 * 0.5)), readDist)
+readKernel <- c(
+  readKernel, 
+  rep(0, nextn(length(readKernel)) - length(readKernel)))
+```
+```{r echo=FALSE, fig.height=4}
+df.tmp1 <- cbind.data.frame(
+  x = seq(1, length(readDist)),
+  y = readDist,
+  Var = "readDist");
+df.tmp2 <- cbind.data.frame(
+  x = seq(1, length(readKernel)),
+  y = readKernel,
+  Var = "readKernel");
+df.all <- rbind.data.frame(df.tmp1, df.tmp2);
+gg <- ggplot(df.all, aes(x = x, y = y, colour = Var));
+gg <- gg + geom_line();
+gg <- gg + theme_bw();
+gg <- gg + scale_color_discrete(name = "");
+gg <- gg + labs(y = "Density");
+gg;
+```
+
+4. Final density distribution is the convolution of the binding density and read density distributions
+\begin{equation}
+f_\rho(z) = \sum_{x=0}^z f_w(x) f_r(z-x)
+\end{equation}
