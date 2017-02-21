@@ -15,6 +15,7 @@ reference:
 ChIPsim:
     cmd: "Rscript scripts/simulate_reads.R"
     EF: 5
+    nReads: 1e5
     nReps: 2
 
 

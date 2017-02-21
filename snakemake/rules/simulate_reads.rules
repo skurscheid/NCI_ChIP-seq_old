@@ -25,6 +25,7 @@ rule simulate_ChIP_reads:
         simName = "{simName}",
         EF      = config["ChIPsim"]["EF"],
         seed    = "1234",
+        nReads  = config["ChIPsim"]["nReads"],
         nReps   = config["ChIPsim"]["nReps"]
     version: "1.0"
     shell:
@@ -35,5 +36,6 @@ rule simulate_ChIP_reads:
             --seed {params.seed} \
             --outdir {params.outdir} \
             --simName {params.simName} \
+            --nReads {params.nReads} \
             --nReps {params.nReps} &> {log}
         """
