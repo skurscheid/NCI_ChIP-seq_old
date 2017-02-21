@@ -111,6 +111,12 @@ option_list <- list(
         help = "Number of reads [default %default]",
         metavar = "integer"),
     make_option(
+        c("--gSize"),
+        type = "integer",
+        default = 0,
+        help = "Genome size [in bp]; if not =0, then the number of reads is scaled such that nReads = nReads/gSize * size(ref) [default %default]",
+        metavar = "integer"),
+    make_option(
         c("--nReps"),
         type = "integer",
         default = 3,
@@ -148,6 +154,7 @@ minFragmentLength <- args$minFragLength;
 maxFragmentLength <- args$maxFragLength;
 readLength <- args$readLength;
 nReads <- args$nReads;
+gSize <- args$gSize;
 nReps <- args$nReps;
 cat(sprintf("%s Parameter summary\n", ts()));
 cat(sprintf(" Reference          = %s\n", genome));
@@ -164,21 +171,26 @@ cat(sprintf(" minFragmentLength  = %i\n", minFragmentLength));
 cat(sprintf(" maxFragmentLength  = %i\n", maxFragmentLength));
 cat(sprintf(" readLength         = %i\n", readLength));
 cat(sprintf(" nReads             = %i\n", nReads));
+cat(sprintf(" gSize              = %i\n", gSize));
 cat(sprintf(" nReps              = %i\n", nReps));
 
 
 ## ------------------------------------------------------------------------
 ## Read in reference
 genome <- readDNAStringSet(genome);
-refLength <- width(genome);
+refSize <- width(genome);
 cat(sprintf(
     "%s Read reference sequence \"%s\" of length %i\n",
     ts(),
     names(genome),
-    refLength));
-if (refLength < backgroundLength + bindingLength) {
+    refSize));
+if (refSize < backgroundLength + bindingLength) {
     stop("Reference sequence must be longer than bindingLength + backgroundLength.\n", call. = FALSE);
 }
+if (gSize > 0 & gSize < refSize) {
+    stop(sprintf("gSize = %i < refSize = %i!", gSize, refSize));
+}
+
 
 
 ## ------------------------------------------------------------------------
@@ -240,7 +252,7 @@ features <- ChIPsim::placeFeatures(
     transition,
     init,
     start = 0,
-    length = refLength,
+    length = refSize,
     globals = list(shape = 1, scale = 20),
     control = list(Binding = list(enrichment = EF)),
     experimentType = "TFExperiment",
@@ -330,7 +342,7 @@ featureDensity.Background <- function(feature, ...) {
 ## ------------------------------------------------------------------------
 ## Convert features to densities
 cat(sprintf("%s Converting features to site densities...\n", ts()));
-dens <- ChIPsim::feat2dens(features, length = refLength);
+dens <- ChIPsim::feat2dens(features, length = refSize);
 
 
 ## ------------------------------------------------------------------------
@@ -367,13 +379,16 @@ randomQualityPhred33 <- function(read, ...) {
 
 ## ------------------------------------------------------------------------
 ## Sample reads for every replicate
-cat(sprintf("%s Sampling reads for %i replicates...\n", ts(), nReps));
+if (gSize != 0) {
+    nReads <- round(nReads / gSize * refSize);
+}
+cat(sprintf("%s Sampling %i reads for %i replicates...\n", ts(), nReads, nReps));
 for (i in 1:nReps) {
     # Sample reads
     readLoc <- ChIPsim::sampleReads(readDens, nreads = nReads);
 
-    # We need to make sure that readLoc + readLen <= refLength for both strands
-    readLoc[[1]] <- readLoc[[1]][which(readLoc[[1]] + readLength <= refLength)];
+    # We need to make sure that readLoc + readLen <= refSize for both strands
+    readLoc[[1]] <- readLoc[[1]][which(readLoc[[1]] + readLength <= refSize)];
     readLoc[[2]] <- readLoc[[1]][which(readLoc[[1]] - readLength > 0)];
 
     # Create names
