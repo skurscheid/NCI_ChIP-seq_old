@@ -40,7 +40,7 @@ option_list <- list(
     make_option(
         c("-o", "--out"),
         type = "character",
-        default = "fastq_index.csv",
+        default = "ref_index.csv",
         help = "Output summary text file [default %default]",
         metavar = "character")
     );

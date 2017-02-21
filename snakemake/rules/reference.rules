@@ -9,7 +9,7 @@
 localrules:
     download_reference
 
-# Download reference sequence using curl
+# Rule to download reference sequence using curl
 rule download_reference:
     input:
     output:
@@ -21,4 +21,25 @@ rule download_reference:
     shell:
         """
             {params.cmd} -o {output} {params.URL}
+        """
+
+
+# Rule to estimate the size of reference files
+# Input is a directory containing fa/fa.gz files
+# Output is csv file in the same folder
+rule estimate_ref_size:
+    input:
+        join(config["refdir"], "{version}")
+    output:
+        join(config["refdir"], "{version}/ref_index.csv")
+    log:
+        "logs/estimate_ref_size_{version}.log"
+    params:
+        cmd = "Rscript scripts/get_fasta_size.R"
+    version: "1.0"
+    shell:
+        """
+            {params.cmd} \
+            -d {input} \
+            -o {output} &> {log}
         """
