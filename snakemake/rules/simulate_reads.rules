@@ -21,8 +21,9 @@ rule simulate_ChIP_reads:
         refIdx = join(config["refdir"], "{version}/ref_index.csv")
     output:
         expand(join(config["rawdir"], \
-            "simul/{{version}}/{{chr}}/reads_{{simName}}_rep{idxRep}.fastq"), \
-            idxRep = range(1, config["ChIPsim"]["nReps"] + 1))
+            "simul/{{version}}/{{chr}}/reads_{{simName}}_rep{idxRep}_{pair}.fastq.gz"), \
+            idxRep = range(1, config["ChIPsim"]["nReps"] + 1), \
+            pair = ["R1", "R2"])
     log:
         "logs/simulate_ChIP_reads_{version}_{chr}_{simName}.log"
     params:
