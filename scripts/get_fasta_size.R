@@ -40,7 +40,7 @@ option_list <- list(
     make_option(
         c("-o", "--out"),
         type = "character",
-        default = "fastq_index.txt",
+        default = "fastq_index.csv",
         help = "Output summary text file [default %default]",
         metavar = "character")
     );
@@ -97,7 +97,7 @@ df <- cbind.data.frame(
     file = basename(files),
     length = sapply(DNA, width),
     name = sapply(DNA, names));
-write.csv(df, file = out, row.names = FALSE);
+write.table(df, file = out, sep = ",", row.names = FALSE, col.names = FALSE);
 
 
 ## ------------------------------------------------------------------------
