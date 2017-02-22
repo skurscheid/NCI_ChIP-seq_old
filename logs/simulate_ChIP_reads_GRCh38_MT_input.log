@@ -1,0 +1,30 @@
+[Wed Feb 22 2017 15:14:22] Parameter summary
+ Reference          = ref/GRCh38/MT.fa.gz
+ name               = input
+ outdir             = rawData/simul/GRCh38/MT
+ seed               = 1234
+ Pbind_given_back   = 0.000000
+ Pback_given_back   = 1.000000
+ EF                 = 5.000000
+ bindingLength      = 50
+ backgroundLength   = 500
+ meanFragmentLength = 200
+ minFragmentLength  = 150
+ maxFragmentLength  = 250
+ readLength         = 75
+ nReads             = 100000
+ gSize              = 50835037
+ nReps              = 2
+[Wed Feb 22 2017 15:14:22] Read reference sequence "MT dna:chromosome chromosome:GRCh38:MT:1:16569:1 REF" of length 16569
+[Wed Feb 22 2017 15:14:22] Note: Pbind_given_back = 0, therefore modelling input.
+[Wed Feb 22 2017 15:14:22] Set fixed seed 1234
+[Wed Feb 22 2017 15:14:22] Running MC model...
+[Wed Feb 22 2017 15:14:22] Results of MC model
+          0 binding sites
+         33 background sites
+[Wed Feb 22 2017 15:14:23] Converting features to site densities...
+[Wed Feb 22 2017 15:14:23] Converting site densities to DNA fragment densities...
+[Wed Feb 22 2017 15:14:23] Sampling 33 reads for 2 replicates...
+[Wed Feb 22 2017 15:14:23] Writing pe reads of rep 1 to fastq files...
+[Wed Feb 22 2017 15:14:23] Writing pe reads of rep 2 to fastq files...
+[Wed Feb 22 2017 15:14:23] Done (time elapsed 4.957289 secs)

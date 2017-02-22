@@ -3,7 +3,7 @@
 # Author: Maurits Evers
 # License: GPLv3
 # Original date: 13-02-2016
-# Last changed: 16-02-2016
+# Last changed: 22-02-2016
 
 from os.path import join
 import re
@@ -32,14 +32,28 @@ REF = expand(join(config["refdir"], "{path}.fa.gz"),
         for x in config["reference"].keys() \
             for y in config["reference"][x].keys()])
 
-# Target: FASTQ files
-FASTQ = expand(join(config["rawdir"], "simul/{path}/reads_{simName}_rep{idxRep}_{pair}.fastq.gz"), \
+# Target: FASTQ files for ChIP TF
+FASTQ_ChIP = expand(join(config["rawdir"], \
+    "simul/{path}/reads_{simName}_rep{idxRep}_{pair}.fastq.gz"),
     path = [x + "/" + y \
         for x in config["reference"].keys() \
             for y in config["reference"][x].keys()],
-    simName = ["TFChIP"],
-    idxRep = range(1, config["ChIPsim"]["nReps"] + 1),
+    simName = config["ChIPsim"]["ChIP"]["name"],
+    idxRep = range(1, config["ChIPsim"]["ChIP"]["nReps"] + 1),
     pair = ["R1", "R2"])
+
+# Target: FASTQ files for ChIP input
+FASTQ_input = expand(join(config["rawdir"], \
+    "simul/{path}/reads_{simName}_rep{idxRep}_{pair}.fastq.gz"),
+    path = [x + "/" + y \
+        for x in config["reference"].keys() \
+            for y in config["reference"][x].keys()],
+    simName = config["ChIPsim"]["input"]["name"],
+    idxRep = range(1, config["ChIPsim"]["input"]["nReps"] + 1),
+    pair = ["R1", "R2"])
+
+# Target: FASTQ files for ChIP TF + input
+FASTQ = FASTQ_ChIP + FASTQ_input
 
 #for x in FASTQ:
 #    message("Target " + x)

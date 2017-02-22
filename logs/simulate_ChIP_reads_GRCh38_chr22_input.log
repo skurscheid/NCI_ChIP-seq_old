@@ -1,0 +1,30 @@
+[Wed Feb 22 2017 15:01:23] Parameter summary
+ Reference          = ref/GRCh38/chr22.fa.gz
+ name               = input
+ outdir             = rawData/simul/GRCh38/chr22
+ seed               = 1234
+ Pbind_given_back   = 0.000000
+ Pback_given_back   = 1.000000
+ EF                 = 5.000000
+ bindingLength      = 50
+ backgroundLength   = 500
+ meanFragmentLength = 200
+ minFragmentLength  = 150
+ maxFragmentLength  = 250
+ readLength         = 75
+ nReads             = 100000
+ gSize              = 50835037
+ nReps              = 2
+[Wed Feb 22 2017 15:01:24] Read reference sequence "22 dna:chromosome chromosome:GRCh38:22:1:50818468:1 REF" of length 50818468
+[Wed Feb 22 2017 15:01:24] Note: Pbind_given_back = 0, therefore modelling input.
+[Wed Feb 22 2017 15:01:24] Set fixed seed 1234
+[Wed Feb 22 2017 15:01:24] Running MC model...
+[Wed Feb 22 2017 15:01:59] Results of MC model
+          0 binding sites
+     101636 background sites
+[Wed Feb 22 2017 15:01:59] Converting features to site densities...
+[Wed Feb 22 2017 15:02:06] Converting site densities to DNA fragment densities...
+[Wed Feb 22 2017 15:03:30] Sampling 99967 reads for 2 replicates...
+[Wed Feb 22 2017 15:03:35] Writing pe reads of rep 1 to fastq files...
+[Wed Feb 22 2017 15:08:58] Writing pe reads of rep 2 to fastq files...
+[Wed Feb 22 2017 15:14:18] Done (time elapsed 12.98087 mins)

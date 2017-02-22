@@ -5,7 +5,7 @@
 #
 # Author: Maurits Evers (maurits.evers@anu.edu.au)
 # Original date: 14/02/2017
-# Last change: 16/02/2017
+# Last change: 22/02/2017
 
 
 ## ------------------------------------------------------------------------
@@ -192,7 +192,6 @@ if (gSize > 0 & gSize < refSize) {
 }
 
 
-
 ## ------------------------------------------------------------------------
 ## Define transition probabilities and initial state
 transition <- list(
@@ -202,7 +201,9 @@ transition <- list(
 transition <- lapply(transition, "class<-", "StateDistribution");
 init <- c(Binding = 0, Background = 1);
 class(init) <- "StateDistribution";
-
+if (Pbind_given_back == 0) {
+    cat(sprintf("%s Note: Pbind_given_back = 0, therefore modelling input.\n", ts()));
+}
 
 ## ------------------------------------------------------------------------
 ## Define background binding strength distribution
@@ -276,23 +277,25 @@ if (nBinding < 1 & Pbind_given_back > 0) {
 
 ## ------------------------------------------------------------------------
 ## Store binding sites in BED file
-cat(sprintf("%s Storing TF binding sites in BED file...\n", ts()));
-chr <- unlist(strsplit(names(genome), " "))[1];
 bindFeat <- features[sapply(features, class)[1, ] == "Binding"];
-df.BED <- cbind.data.frame(
-    chr = rep(chr, length(bindFeat)),
-    start = sapply(bindFeat, "[[", 1) - 1,
-    end = sapply(bindFeat, "[[", 1) + sapply(bindFeat, "[[", 2),
-    name = sprintf("bindFeat_%s_%i", simName, seq(1, length(bindFeat))),
-    score = sapply(bindFeat, "[[", 3),
-    strand = rep(".", length(bindFeat)));
-write.table(
-    df.BED,
-    file = sprintf("%s/bindingSites_%s.bed", outdir, simName),
-    quote = FALSE,
-    sep = "\t",
-    col.names = FALSE,
-    row.names = FALSE);
+if (length(bindFeat) > 0) {
+    cat(sprintf("%s Storing TF binding sites in BED file...\n", ts()));
+    chr <- unlist(strsplit(names(genome), " "))[1];
+    df.BED <- cbind.data.frame(
+        chr = rep(chr, length(bindFeat)),
+        start = sapply(bindFeat, "[[", 1) - 1,
+        end = sapply(bindFeat, "[[", 1) + sapply(bindFeat, "[[", 2),
+        name = sprintf("bindFeat_%s_%i", simName, seq(1, length(bindFeat))),
+        score = sapply(bindFeat, "[[", 3),
+        strand = rep(".", length(bindFeat)));
+    write.table(
+        df.BED,
+        file = sprintf("%s/bindingSites_%s.bed", outdir, simName),
+        quote = FALSE,
+        sep = "\t",
+        col.names = FALSE,
+        row.names = FALSE);
+}
 
 
 ## ------------------------------------------------------------------------
