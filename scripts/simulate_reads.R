@@ -373,7 +373,7 @@ randomQualityPhred33 <- function(read, ...) {
     # Character vector of symbols for the Phred+33 quality encoding scale
     rangePhred33 <- unlist(strsplit(rawToChar(as.raw(33:126)), ""));
     # Uniform-randomly sample qualities
-    paste(sample(rangePhred33, length(read), replace = TRUE), collapse = "");
+    paste(sample(rangePhred33, width(read), replace = TRUE), collapse = "");
 }
 
 
@@ -384,37 +384,105 @@ if (gSize != 0) {
 }
 cat(sprintf("%s Sampling %i reads for %i replicates...\n", ts(), nReads, nReps));
 for (i in 1:nReps) {
-    # Sample reads
-    readLoc <- ChIPsim::sampleReads(readDens, nreads = nReads);
+    # Sample read/fragment starting position
+    fragStart <- ChIPsim::sampleReads(readDens, nreads = nReads);
 
-    # We need to make sure that readLoc + readLen <= refSize for both strands
-    readLoc[[1]] <- readLoc[[1]][which(readLoc[[1]] + readLength <= refSize)];
-    readLoc[[2]] <- readLoc[[1]][which(readLoc[[1]] - readLength > 0)];
+    # Sample fragment lengths and store start and length in list
+    frag <- lapply(fragStart, function(x) {
+        cbind.data.frame(
+            start = x,
+            length = sample(
+                minFragmentLength:maxFragmentLength,
+                length(x),
+                replace = TRUE,
+                prob = fragLength(
+                    minFragmentLength:maxFragmentLength,
+                    minLength = minFragmentLength,
+                    maxLength = maxFragmentLength,
+                    meanLength = meanFragmentLength)))
+    });
 
-    # Create names
-    nreads <- sapply(readLoc, length);
-    names <- list(
-        fwd = sprintf("read_%s_rep%i_fwd_%s", simName, i, seq(nreads[1])),
-        rev = sprintf("read_%s_rep%i_rev_%s", simName, i, seq(nreads[2])));
+    # We need to make sure that
+    #    (1) fragstart + fraglength <= refSize on the positive strand
+    #    (2) fragstart - fraglength >= 1 on the negative strand
+    idx1 <- frag[[1]]$start + frag[[1]]$length - 1 <= refSize;
+    idx2 <- frag[[2]]$start - frag[[2]]$length + 1 >= 1;
+    frag[[1]] <- frag[[1]][idx1, ];
+    frag[[2]] <- frag[[2]][idx2, ];
 
-    # Write to FASTQ
-    cat(sprintf("%s Writing reads of rep %i to fastq file...\n", ts(), i));
-    filename.FASTQ <- sprintf(
-        "%s/reads_%s_rep%i.fastq",
-        outdir,
-        simName,
-        i);
-    if (file.exists(filename.FASTQ)) {
-        file.remove(filename.FASTQ);
+    # Extract sequences and write to two FASTQ
+    cat(sprintf("%s Writing pe reads of rep %i to fastq files...\n", ts(), i));
+    # Open two files for the left and right reads
+    file.R1 <- gzfile(
+        sprintf(
+            "%s/reads_%s_rep%i_R1.fastq.gz",
+            outdir,
+            simName,
+            i),
+        "w");
+    file.R2 <- gzfile(
+        sprintf(
+            "%s/reads_%s_rep%i_R2.fastq.gz",
+            outdir,
+            simName,
+            i),
+        "w");
+    for (j in 1:2) {
+        for (k in 1:nrow(frag[[j]])) {
+            if (j == 1) {
+                # frag[j==1] gives 5' start positions from the positive strand
+                #                                read2
+                #                             <xxxxxx|
+                # rev = 3' oooooooooooooooooooooooooooooooooooooooooooooo 5'
+                # frag        |----------------------|
+                # fragstart   x
+                # fwd = 5' oooooooooooooooooooooooooooooooooooooooooooooo 3'
+                #             |xxxxxx>
+                #             read1
+                read1 <- subseq(
+                    genome,
+                    start = frag[[j]]$start[k],
+                    end = frag[[j]]$start[k] + readLength - 1);
+                read2 <- subseq(
+                    genome,
+                    start = frag[[j]]$start[k] + frag[[j]]$length[k] - readLength,
+                    end = frag[[j]]$start[k] + frag[[j]]$length[k] - 1);
+                read2 <- reverseComplement(read2);
+            } else {
+                # frag[j==2] gives 5' start positions from the negative strand
+                #                                read1
+                #                             <xxxxxx|
+                # rev = 3' oooooooooooooooooooooooooooooooooooooooooooooo 5'
+                # frag        |----------------------|
+                # fragstart                          x
+                # fwd = 5' oooooooooooooooooooooooooooooooooooooooooooooo 3'
+                #             |xxxxxx>
+                #             read2
+                read1 <- subseq(
+                    genome,
+                    start = frag[[j]]$start[k] - readLength + 1,
+                    end = frag[[j]]$start[k]);
+                read1 <- reverseComplement(read1);
+                read2 <- subseq(
+                    genome,
+                    start = frag[[j]]$start[k] - frag[[j]]$length[k] + 1,
+                    end = frag[[j]]$start[k] - frag[[j]]$length[k] + readLength);
+            }
+            id <- sprintf("simul_%s_rep%i_strand%i_read%i", simName, i, j, k);
+            # Write left read
+            cat("@", id, "/1\n", sep = "", file = file.R1);
+            cat(as.character(read1), "\n", sep ="", file = file.R1);
+            cat("+", "\n", sep = "", file = file.R1);
+            cat(randomQualityPhred33(read1), "\n", sep = "", file = file.R1);
+            # Write right read
+            cat("@", id, "/2\n", sep = "", file = file.R2);
+            cat(as.character(read2), "\n", sep ="", file = file.R2);
+            cat("+", "\n", sep = "", file = file.R2);
+            cat(randomQualityPhred33(read2), "\n", sep = "", file = file.R2);
+        }
     }
-    pos2fastq(
-        readLoc,
-        names = names,
-        sequence = genome[[1]],
-        qualityFun = randomQualityPhred33,
-        errorFun = readError,
-        readLen = readLength,
-        file = filename.FASTQ);
+    close(file.R1);
+    close(file.R2);
 }
 
 
