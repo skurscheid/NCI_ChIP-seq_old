@@ -66,8 +66,8 @@ FASTQ = expand(join(config["rawdir"], \
 #    for w in FASTQ])
 
 #
-for x in FASTQ:
-    message("Target " + x)
+#for x in REF:
+#    message("Target " + x)
 
 
 #######################################################
@@ -85,4 +85,4 @@ include: "rules/fastq.rules"
 # Input fastq files
 rule all:
     input:
-        FASTQ
+        REF + FASTQ
