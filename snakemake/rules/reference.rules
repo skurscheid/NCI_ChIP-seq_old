@@ -41,8 +41,9 @@ rule download_reference:
 # Output is csv file in the same folder
 rule estimate_ref_size:
     input:
-        expand(join(config["refdir"], "{{version}}/{chr}.fa.gz"),
-            chr = config["reference"]["seqs"].keys())
+        fasta = expand(join(config["refdir"], "{{version}}/{chr}.fa.gz"),
+            chr = config["reference"]["seqs"].keys()),
+        dir = join(config["refdir"], "{version}")
     output:
         join(config["refdir"], "{version}/ref_index.csv")
     log:
@@ -53,6 +54,6 @@ rule estimate_ref_size:
     shell:
         """
             {params.cmd} \
-            -d {input} \
+            -d {input.dir} \
             -o {output} &> {log}
         """
