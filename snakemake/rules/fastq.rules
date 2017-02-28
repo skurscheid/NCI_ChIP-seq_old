@@ -1,9 +1,9 @@
-# Snakemake rules for quality control
+# Snakemake rules for processing fastq files
 #
 # Author: Maurits Evers
 # License: GPLv3
-# Original date: 21-10-2016
-# Last changed: 24-10-2016
+# Original date: 28-02-2017
+# Last changed: 28-02-2017
 
 
 # Merge simulated fastq reads from different chromosomes

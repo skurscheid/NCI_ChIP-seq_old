@@ -3,7 +3,7 @@
 # Author: Maurits Evers
 # License: GPLv3
 # Original date: 13-02-2016
-# Last changed: 22-02-2016
+# Last changed: 28-02-2016
 
 from os.path import join
 import re
