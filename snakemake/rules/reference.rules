@@ -9,11 +9,11 @@
 
 # Function to calculate the total genome size
 # based on a reference sequence summary text file
-def get_fasta_size(input):
-    import csv
-    cr = csv.reader(open(input.refSum, "rt"))
-    N = sum(int(x[1]) for x in cr))
-    return(int(N))
+#def get_fasta_size(input):
+#    import csv
+#    cr = csv.reader(open(input.refSum, "rt"))
+#    N = sum(int(x[1]) for x in cr))
+#    return(int(N))
 
 
 localrules:
