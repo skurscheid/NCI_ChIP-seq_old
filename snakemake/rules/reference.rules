@@ -27,7 +27,8 @@ rule download_reference:
         join(config["refdir"], "{version}", "{chr}.fa.gz")
     params:
         cmd  = "curl",
-        URL  = lambda wildcards: expand("{url}", url = config["reference"][wildcards.version][wildcards.chr])
+        URL  = lambda wildcards: expand("{url}", \
+            url = config["reference"]["seqs"][wildcards.chr])
     version: "1.0"
     shell:
         """
@@ -40,7 +41,6 @@ rule download_reference:
 # Output is csv file in the same folder
 rule estimate_ref_size:
     input:
-        join(config["refdir"], "{version}")
     output:
         join(config["refdir"], "{version}/ref_index.csv")
     log:

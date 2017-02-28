@@ -2,10 +2,12 @@
 basedir: ".."
 refdir: "ref/"
 rawdir: "rawData/"
+fastqcdir: "rawData/QC/"
 
 # Reference files
 reference:
-    GRCh38:
+    version: GRCh38
+    seqs:
 #        chr1: ftp://ftp.ensembl.org/pub/release-87/fasta/homo_sapiens/dna/Homo_sapiens.GRCh38.dna.chromosome.1.fa.gz
         chr22: ftp://ftp.ensembl.org/pub/release-87/fasta/homo_sapiens/dna/Homo_sapiens.GRCh38.dna.chromosome.22.fa.gz
         MT: ftp://ftp.ensembl.org/pub/release-87/fasta/homo_sapiens/dna/Homo_sapiens.GRCh38.dna.chromosome.MT.fa.gz

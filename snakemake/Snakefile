@@ -27,36 +27,47 @@ workdir: config["basedir"]
 #######################################################
 
 # Target: Reference sequence
-REF = expand(join(config["refdir"], "{path}.fa.gz"),
-    path = [x + "/" + y \
-        for x in config["reference"].keys() \
-            for y in config["reference"][x].keys()])
+REF = expand(join(config["refdir"], "{version}/{chr}.fa.gz"),
+    version = config["reference"]["version"],
+    chr = config["reference"]["seqs"].keys())
 
 # Target: FASTQ files for ChIP TF
 FASTQ_ChIP = expand(join(config["rawdir"], \
-    "simul/{path}/reads_{simName}_rep{idxRep}_{pair}.fastq.gz"),
-    path = [x + "/" + y \
-        for x in config["reference"].keys() \
-            for y in config["reference"][x].keys()],
+    "simul/{version}/{chr}/reads_{simName}_rep{idxRep}_{pair}.fastq.gz"),
+    version = config["reference"]["version"],
+    chr = config["reference"]["seqs"].keys(),
     simName = config["ChIPsim"]["ChIP"]["name"],
     idxRep = range(1, config["ChIPsim"]["ChIP"]["nReps"] + 1),
     pair = ["R1", "R2"])
 
 # Target: FASTQ files for ChIP input
 FASTQ_input = expand(join(config["rawdir"], \
-    "simul/{path}/reads_{simName}_rep{idxRep}_{pair}.fastq.gz"),
-    path = [x + "/" + y \
-        for x in config["reference"].keys() \
-            for y in config["reference"][x].keys()],
+    "simul/{version}/{chr}/reads_{simName}_rep{idxRep}_{pair}.fastq.gz"),
+    version = config["reference"]["version"],
+    chr = config["reference"]["seqs"].keys(),
     simName = config["ChIPsim"]["input"]["name"],
     idxRep = range(1, config["ChIPsim"]["input"]["nReps"] + 1),
     pair = ["R1", "R2"])
 
 # Target: FASTQ files for ChIP TF + input
-FASTQ = FASTQ_ChIP + FASTQ_input
+#FASTQ = FASTQ_ChIP + FASTQ_input
 
-#for x in FASTQ:
-#    message("Target " + x)
+# Target: Merged FASTQ files
+FASTQ = expand(join(config["rawdir"], \
+    "simul/reads_{type}_{rep}_{pair}.fastq.gz"),
+    type = ["TFChip", "input"],
+    rep = ["rep1", "rep2"],
+    pair = ["R1", "R2"])
+
+
+# Target: FASTQC files
+#FASTQC = expand(join(config["fastqcdir"], "{unit}_fastqc.zip"), \
+#    unit = [w.replace(".fastq.gz", "").replace(config["rawdir"], "") \
+#    for w in FASTQ])
+
+#
+for x in FASTQ:
+    message("Target " + x)
 
 
 #######################################################
@@ -65,6 +76,7 @@ FASTQ = FASTQ_ChIP + FASTQ_input
 
 include: "rules/reference.rules"
 include: "rules/simulate_reads.rules"
+include: "rules/fastq.rules"
 
 #######################################################
 ######################## Rules ########################
