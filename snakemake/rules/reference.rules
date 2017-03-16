@@ -1,10 +1,10 @@
 # Snakemake rules to generate and
 # process reference sequence data
 #
-# Author: Maurits Evers
+# Authors: Maurits Evers, Sebastian Kurscheid
 # License: GPLv3
 # Original date: 13-02-2016
-# Last changed: 13-02-2017
+# Last changed: 16-03-2017
 
 localrules:
     download_reference
@@ -21,4 +21,15 @@ rule download_reference:
     shell:
         """
             {params.cmd} -o {output} {params.URL}
+        """
+
+# build bowtie2 index from downloaded FASTA
+rule build_index:
+    input:
+    output:
+        join(config["indexdir"], "{version}")
+    params:
+    version: "1.0"
+    shell:
+        """
         """
