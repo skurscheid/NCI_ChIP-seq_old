@@ -1,3 +1,5 @@
+*.pdf
+*.log
 # Reference sequences
 ref
 
