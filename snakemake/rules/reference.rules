@@ -24,12 +24,30 @@ rule download_reference:
         """
 
 # build bowtie2 index from downloaded FASTA
-rule build_index:
+rule decompress_reference:
+    version: "1.0"
     input:
+        FASTAs = join(config["refdir"], "{version}", "{chr}.fa.gz")
+    output:
+        join(config["refdir"], "{version}", "{chr}.fa")
+    params:
+        cmd = "gzip"
+    shell:
+        """
+            {params.cmd} -d {input} {output}
+        """
+
+rule bowtie2_build_index:
+    version: "1.0"
+    input:
+        ",".join(config["refdir"], "{version}", "{chr}.fa")
     output:
         join(config["indexdir"], "{version}")
     params:
-    version: "1.0"
+        cmd = config["bowtie2-build"]["cmd"]
+    log:
+        "logs/bowtie2_build_index_{version}.log"
     shell:
         """
+            {params.cmd} {input} {output}
         """

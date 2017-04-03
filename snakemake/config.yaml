@@ -2,6 +2,7 @@
 basedir: ".."
 refdir: "ref/"
 rawdir: "rawData/"
+indexdir: "ref/bt2Index"
 
 # Reference files
 reference:
@@ -9,6 +10,7 @@ reference:
 #        chr1: ftp://ftp.ensembl.org/pub/release-87/fasta/homo_sapiens/dna/Homo_sapiens.GRCh38.dna.chromosome.1.fa.gz
         chr22: ftp://ftp.ensembl.org/pub/release-87/fasta/homo_sapiens/dna/Homo_sapiens.GRCh38.dna.chromosome.22.fa.gz
         MT: ftp://ftp.ensembl.org/pub/release-87/fasta/homo_sapiens/dna/Homo_sapiens.GRCh38.dna.chromosome.MT.fa.gz
+
 
 
 # ChIPsim
