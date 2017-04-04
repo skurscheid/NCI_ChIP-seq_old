@@ -27,7 +27,7 @@ rule download_reference:
 rule decompress_reference:
     version: "1.0"
     input:
-        FASTAs = join(config["refdir"], "{index}", "{chr}.fa.gz")
+        rules.download_reference.output
     output:
         join(config["refdir"], "{version}", "{chr}.fa")
     params:
