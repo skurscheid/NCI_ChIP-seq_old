@@ -40,7 +40,7 @@ FASTAS = expand(join(config["refdir"], "{path}.fa"),
 
 # Target: bowtie2 index file
 BTINDEX = expand(join(config["indexdir"], "{version}"),
-    index = [x \
+    version = [x \
         for x in config["reference"].keys()])
 
 # Target: FASTQ files
