@@ -29,7 +29,7 @@ rule decompress_reference:
     input:
         FASTAs = join(config["refdir"], "{index}", "{chr}.fa.gz")
     output:
-        join((config["refdir"], "{version}", "{chr}.fa"))
+        join(config["refdir"], "{version}", "{chr}.fa")
     params:
         cmd = "gzip"
     shell:
