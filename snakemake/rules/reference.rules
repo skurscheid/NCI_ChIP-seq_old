@@ -34,20 +34,20 @@ rule decompress_reference:
         cmd = "gzip"
     shell:
         """
-            {params.cmd} -d {input} {output}
+            {params.cmd} -d {input.FASTAs} {output}
         """
 
 rule bowtie2_build_index:
     version: "1.0"
     input:
-        ",".join(config["refdir"], "{index}", "{chr}.fa")
+        FASTAs = join(config["refdir"], "{index}", "{chr}.fa")
     output:
-        join((config["indexdir"], "{index}"))
+        join(config["indexdir"], "{index}")
     params:
         cmd = config["bowtie2-build"]["cmd"]
     log:
         "logs/bowtie2_build_index_{version}.log"
     shell:
         """
-            {params.cmd} {input} {output}
+            {params.cmd} {input.FASTAs} {output}
         """
