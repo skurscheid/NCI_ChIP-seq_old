@@ -36,7 +36,7 @@ REF = expand(join(config["refdir"], "{path}.fa.gz"),
 FASTAS = expand(join(config["refdir"], "{path}.fa"),
     path = [x + "/" + y \
         for x in config["reference"].keys() \
-		for y in config["reference"][x].keys])
+		      for y in config["reference"][x].keys()])
 
 # Target: bowtie2 index file
 BTINDEX = expand(join(config["indexdir"], "{index}"),
