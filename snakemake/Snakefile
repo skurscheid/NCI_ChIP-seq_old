@@ -58,4 +58,4 @@ include: "rules/simulate_reads.rules"
 # Input fastq files
 rule all:
     input:
-        FASTQ
+        REF
