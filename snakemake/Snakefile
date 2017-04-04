@@ -32,12 +32,14 @@ REF = expand(join(config["refdir"], "{path}.fa.gz"),
         for x in config["reference"].keys() \
             for y in config["reference"][x].keys()])
 
-INDEX = expand(join(config["indexdir"], "{index}"),
-    index = config["reference"].keys())
-
+# Target: extracted reference sequences
 FASTAS = expand(join(config["refdir"], "{path}.fa"),
     path = [x + "/" + y \
         for x in config["reference"].keys())
+
+# Target: bowtie2 index file
+BTINDEX = expand(join(config["indexdir"], "{index}"),
+    index = config["reference"].keys())
 
 # Target: FASTQ files
 FASTQ = expand(join(config["rawdir"], "simul", "{path}/reads_{simName}_rep{idxRep}.fastq"), \
@@ -47,8 +49,8 @@ FASTQ = expand(join(config["rawdir"], "simul", "{path}/reads_{simName}_rep{idxRe
     simName = ["TFChIP"],
     idxRep = range(1, config["ChIPsim"]["nReps"] + 1))
 
-#for x in FASTQ:
-#    message("Target " + x)
+for x in BTINDEX:
+    message("Target " + x)
 
 
 #######################################################
@@ -65,4 +67,4 @@ include: "rules/simulate_reads.rules"
 # Input fastq files
 rule all:
     input:
-        INDEX
+        BTINDEX
