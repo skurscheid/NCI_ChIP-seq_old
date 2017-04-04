@@ -40,7 +40,7 @@ rule decompress_reference:
 rule bowtie2_build_index:
     version: "1.0"
     input:
-        FASTAs = lambda wildcards: ",".join((config["refdir"], wildcards["index"], "*.fa"))
+        FASTAs = lambda wildcards: re.sub(".gz", "", ",".join((config["refdir"], wildcards["index"], "*.fa")))
     output:
         join(config["indexdir"], "{index}")
     params:
