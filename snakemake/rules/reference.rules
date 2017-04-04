@@ -40,7 +40,7 @@ rule decompress_reference:
 rule bowtie2_build_index:
     version: "1.0"
     input:
-        FASTAs = ",".join(glob.glob("/".join((config["refdir"], "{index}", "*.fa"))))
+        FASTAs = ",".join(glob.glob("/".join((config["refdir"], "{version}", "*.fa"))))
     output:
         join(config["indexdir"], "{index}")
     params:
