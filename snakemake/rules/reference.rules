@@ -42,11 +42,11 @@ rule bowtie2_build_index:
     input:
         FASTAs = lambda wildcards: re.sub(".gz", "", "/".join((config["refdir"], wildcards["index"], "*.fa")))
     output:
-        join(config["indexdir"], "{index}")
+        join(config["indexdir"], "{version}")
     params:
         cmd = config["bowtie2-build"]["cmd"]
-    log:
-        "logs/bowtie2_build_index_{version}.log"
+#    log:
+#        "logs/bowtie2_build_index_{version}.log"
     shell:
         """
             {params.cmd} {input.FASTAs} {output}
