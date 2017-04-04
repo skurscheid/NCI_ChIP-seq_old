@@ -13,7 +13,7 @@ localrules:
 rule download_reference:
     input:
     output:
-        join((config["refdir"], "{version}", "{chr}.fa.gz"))
+        join(config["refdir"], "{version}", "{chr}.fa.gz")
     params:
         cmd  = "curl",
         URL  = lambda wildcards: expand("{url}", url = config["reference"][wildcards.version][wildcards.chr])
@@ -27,7 +27,7 @@ rule download_reference:
 rule decompress_reference:
     version: "1.0"
     input:
-        FASTAs = join(config["refdir"], "{version}", "{chr}.fa.gz")
+        FASTAs = join(config["refdir"], "{index}", "{chr}.fa.gz")
     output:
         join((config["refdir"], "{version}", "{chr}.fa"))
     params:
@@ -40,9 +40,9 @@ rule decompress_reference:
 rule bowtie2_build_index:
     version: "1.0"
     input:
-        ",".join(config["refdir"], "{version}", "{chr}.fa")
+        ",".join(config["refdir"], "{index}", "{chr}.fa")
     output:
-        join((config["indexdir"], "{version}"))
+        join((config["indexdir"], "{index}"))
     params:
         cmd = config["bowtie2-build"]["cmd"]
     log:

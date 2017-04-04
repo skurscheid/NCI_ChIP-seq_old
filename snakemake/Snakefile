@@ -32,6 +32,9 @@ REF = expand(join(config["refdir"], "{path}.fa.gz"),
         for x in config["reference"].keys() \
             for y in config["reference"][x].keys()])
 
+INDEX = expand(join(config["indexdir"], "{index}"),
+    index = config["reference"].keys())
+
 # Target: FASTQ files
 FASTQ = expand(join(config["rawdir"], "simul", "{path}/reads_{simName}_rep{idxRep}.fastq"), \
     path = [x + "/" + y \

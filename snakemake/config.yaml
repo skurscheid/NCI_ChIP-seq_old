@@ -2,7 +2,7 @@
 basedir: ".."
 refdir: "ref/"
 rawdir: "rawData/"
-indexdir: "ref/bt2Index"
+indexdir: "ref/bt2Index/"
 
 # Reference files
 reference:
