@@ -3,8 +3,8 @@
 #
 # Authors: Maurits Evers, Sebastian Kurscheid
 # License: GPLv3
-# Original date: 13-02-2016
-# Last changed: 16-03-2017
+# Original date: 13-02-2016, ME
+# Last changed: 05-04-2017, SK
 
 localrules:
     download_reference
@@ -29,25 +29,25 @@ rule decompress_reference:
     input:
         FASTAs = rules.download_reference.output
     output:
-        join(config["refdir"], "{version}", "{chr}.fa")
+        "{refdir}/{version}/{chr}.fa"
     params:
         cmd = "gzip"
     shell:
         """
-            {params.cmd} -d {input.FASTAs} {output}
+            {params.cmd} -dc {input.FASTAs} > {output}
         """
 
 rule bowtie2_build_index:
     version: "1.0"
     input:
-        FASTAs = lambda wildcards: re.sub(".gz", "", "/".join((config["refdir"], wildcards.version, "*.fa")))
     output:
-        join(config["indexdir"], "{version}")
+        "{indexdir}{index}.1.bt2"
     params:
-        cmd = config["bowtie2-build"]["cmd"]
-#    log:
-#        "logs/bowtie2_build_index_{version}.log"
+        cmd = config["bowtie2-build"]["cmd"],
+        FASTAs = lambda wildcards: ",".join(glob.glob("".join((config["refdir"], wildcards["index"], "/*.fa"))))
+    log:
+        "logs/bowtie2_build_index_{index}.log"
     shell:
         """
-            {params.cmd} {input.FASTAs} {output}
+            {params.cmd} {params.FASTAs} {wildcards.indexdir}{wildcards.index}
         """
