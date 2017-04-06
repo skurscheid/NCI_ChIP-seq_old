@@ -4,7 +4,7 @@
 
 
 ## Updates
-
+* added rules for building bowtie2 index from any downloaded reference files (currently without input rule)
 
 ## Authors
 [Maurits Evers](mailto:maurits.evers@anu.edu.au)
