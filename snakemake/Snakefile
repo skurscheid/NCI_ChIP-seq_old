@@ -27,50 +27,6 @@ workdir: config["basedir"]
 #######################################################
 
 # Target: Reference sequence
-<<<<<<< HEAD
-REF = expand(join(config["refdir"], "{version}/{chr}.fa.gz"),
-    version = config["reference"]["version"],
-    chr = config["reference"]["seqs"].keys())
-
-# Target: FASTQ files for ChIP TF
-FASTQ_ChIP = expand(join(config["rawdir"], \
-    "simul/{version}/{chr}/reads_{simName}_rep{idxRep}_{pair}.fastq.gz"),
-    version = config["reference"]["version"],
-    chr = config["reference"]["seqs"].keys(),
-    simName = config["ChIPsim"]["ChIP"]["name"],
-    idxRep = range(1, config["ChIPsim"]["ChIP"]["nReps"] + 1),
-    pair = ["R1", "R2"])
-
-# Target: FASTQ files for ChIP input
-FASTQ_input = expand(join(config["rawdir"], \
-    "simul/{version}/{chr}/reads_{simName}_rep{idxRep}_{pair}.fastq.gz"),
-    version = config["reference"]["version"],
-    chr = config["reference"]["seqs"].keys(),
-    simName = config["ChIPsim"]["input"]["name"],
-    idxRep = range(1, config["ChIPsim"]["input"]["nReps"] + 1),
-    pair = ["R1", "R2"])
-
-# Target: FASTQ files for ChIP TF + input
-#FASTQ = FASTQ_ChIP + FASTQ_input
-
-# Target: Merged FASTQ files
-FASTQ = expand(join(config["rawdir"], \
-    "simul/reads_{type}_{rep}_{pair}.fastq.gz"),
-    type = ["TFChip", "input"],
-    rep = ["rep1", "rep2"],
-    pair = ["R1", "R2"])
-
-
-# Target: FASTQC files
-#FASTQC = expand(join(config["fastqcdir"], "{unit}_fastqc.zip"), \
-#    unit = [w.replace(".fastq.gz", "").replace(config["rawdir"], "") \
-#    for w in FASTQ])
-
-#
-#for x in REF:
-#    message("Target " + x)
-
-=======
 REF = expand(join(config["refdir"], "{path}.fa.gz"),
     path = [x + "/" + y \
         for x in config["reference"].keys() \
@@ -97,7 +53,6 @@ FASTQ = expand(join(config["rawdir"], "simul", "{path}/reads_{simName}_rep{idxRe
             for y in config["reference"][x].keys()],
     simName = ["TFChIP"],
     idxRep = range(1, config["ChIPsim"]["nReps"] + 1))
->>>>>>> 335965a6f9673079854591a03a14610217baa013
 
 #######################################################
 ###################### Includes #######################
@@ -114,9 +69,5 @@ include: "rules/fastq.rules"
 # Input fastq files
 rule all:
     input:
-<<<<<<< HEAD
-        REF + FASTQ
-=======
         FASTAS,
         BTINDEX
->>>>>>> 335965a6f9673079854591a03a14610217baa013

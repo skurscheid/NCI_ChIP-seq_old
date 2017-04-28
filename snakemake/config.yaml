@@ -2,11 +2,7 @@
 basedir: ".."
 refdir: "ref/"
 rawdir: "rawData/"
-<<<<<<< HEAD
-fastqcdir: "rawData/QC/"
-=======
 indexdir: "ref/bt2Index/"
->>>>>>> 335965a6f9673079854591a03a14610217baa013
 
 # Reference files
 reference:
