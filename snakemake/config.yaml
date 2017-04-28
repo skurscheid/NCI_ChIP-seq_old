@@ -2,6 +2,7 @@
 basedir: ".."
 refdir: "ref/"
 rawdir: "rawData/"
+aligndir: "alignedData/"
 indexdir: "ref/bt2Index/"
 
 # Reference files
@@ -17,6 +18,7 @@ reference:
 ChIPsim:
     cmd: "Rscript scripts/simulate_reads.R"
     EF: 5
+    seed: 1234
     nReps: 2
 
 

@@ -24,7 +24,7 @@ rule simulate_ChIP_reads:
         outdir  = join(config["rawdir"], "simul", "{version}/{chr}"),
         simName = "{simName}",
         EF      = config["ChIPsim"]["EF"],
-        seed    = "1234",
+        seed    = config["ChIPsim"]["seed"],
         nReps   = config["ChIPsim"]["nReps"]
     version: "1.0"
     shell:

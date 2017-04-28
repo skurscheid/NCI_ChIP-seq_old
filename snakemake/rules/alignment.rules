@@ -1,0 +1,32 @@
+# Snakemake rules to align and
+# post-process simulated reads
+#
+# Authors: Maurits Evers, Sebastian Kurscheid
+# License: GPLv3
+# Original date: 06-04-2017, SK
+# Last changed: 06-04-2017, SK
+
+rule bowtie2_align:
+    version: "1.0"
+    params:
+        cmd = config["bowtie2"]["cmd"],
+        in_fmt = config["bowtie2"]["in_fmt"],
+        phred = config["bowtie2"]["phred"],
+        maxins = config["bowtie2"]["maxins"],
+        mismatch = config["bowtie2"]["mismatch"],
+    threads:
+        int(str(config["bowtie2"]["threads"]).strip("['']"))
+    input:
+        expand(join(config["rawdir"], \
+            "simul/{{version}}/{{chr}}/reads_{{simName}}_rep{idxRep}.fastq"), \
+            idxRep = range(1, config["ChIPsim"]["nReps"] + 1))
+    output:
+        expand(join(config["aligndir"], \
+            "simul/{{version}}/{{chr}}/reads_{{simName}}_rep{idxRep}.bam"), \
+            idxRep = range(1, config["ChIPsim"]["nReps"] + 1))
+    log:
+        "logs/bowtie2_align_{index}.log"
+    shell:
+        """
+            {params.cmd} {params.in_fmt} {params.phred} {params.maxins} {}
+        """
