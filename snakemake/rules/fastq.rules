@@ -1,0 +1,45 @@
+# Snakemake rules for processing fastq files
+#
+# Author: Maurits Evers
+# License: GPLv3
+# Original date: 28-02-2017
+# Last changed: 28-02-2017
+
+
+# Merge simulated fastq reads from different chromosomes
+rule merge_simul_fastqc:
+    input:
+        expand(join(config["rawdir"],
+            "simul/{version}/{chr}/reads_{{ID}}_{{rep}}_{{pair}}.fastq.gz"),
+            version = config["reference"]["version"],
+            chr = config["reference"]["seqs"].keys())
+    output:
+        join(config["rawdir"], "simul/reads_{ID}_{rep}_{pair}.fastq.gz")
+    threads: 1
+    params:
+    version: "1.0"
+    shell:
+        """
+            cat {input} > {output}
+        """
+
+
+
+# Quality control using FASTQC
+#rule fastqc:
+#    input:
+#        join(config["rawdir"], "{src}/{ref}/{chr}/{file}.fastq.gz")
+#    output:
+#        join(config["fastqcdir"], "{src}/{ref}/{chr}/{file}_fastqc.zip")
+#    threads: 1
+#    params:
+#        cmd = config["fastqc"]["cmd"],
+#        out = join(config["fastqcdir"], "{run}/{sample}")
+#    version: "1.0"
+#    shell:
+#        """
+#            {params.cmd} \
+#            -f fastq \
+#            -o {params.out} \
+#            {input}
+#        """

@@ -3,7 +3,7 @@
 # Author: Maurits Evers
 # License: GPLv3
 # Original date: 13-02-2016
-# Last changed: 16-02-2016
+# Last changed: 28-02-2016
 
 from os.path import join
 import re
@@ -32,6 +32,20 @@ REF = expand(join(config["refdir"], "{path}.fa.gz"),
         for x in config["reference"].keys() \
             for y in config["reference"][x].keys()])
 
+# Target: extracted reference sequences
+FASTAS = expand("{refdir}/{version}/{chr}.fa",
+                refdir = config["refdir"],
+                version = [x for x in config["reference"].keys()],
+                chr = [ y \
+                    for x in config["reference"].keys() \
+                        for y in config["reference"][x].keys()])
+
+# Target: bowtie2 index file
+BTINDEX = expand("{indexdir}/{index}.1.bt2",
+    indexdir = config["indexdir"],
+    index = [x \
+        for x in config["reference"].keys()])
+
 # Target: FASTQ files
 FASTQ = expand(join(config["rawdir"], "simul", "{path}/reads_{simName}_rep{idxRep}.fastq"), \
     path = [x + "/" + y \
@@ -40,16 +54,13 @@ FASTQ = expand(join(config["rawdir"], "simul", "{path}/reads_{simName}_rep{idxRe
     simName = ["TFChIP"],
     idxRep = range(1, config["ChIPsim"]["nReps"] + 1))
 
-#for x in FASTQ:
-#    message("Target " + x)
-
-
 #######################################################
 ###################### Includes #######################
 #######################################################
 
 include: "rules/reference.rules"
 include: "rules/simulate_reads.rules"
+include: "rules/fastq.rules"
 
 #######################################################
 ######################## Rules ########################
@@ -58,4 +69,9 @@ include: "rules/simulate_reads.rules"
 # Input fastq files
 rule all:
     input:
+<<<<<<< HEAD
         REF
+=======
+        FASTAS,
+        BTINDEX
+>>>>>>> bf22dad88900e157b0bd6cc4ec8df7c1ee8a0ded

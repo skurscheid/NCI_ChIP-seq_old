@@ -7,6 +7,3 @@ __default__ :
         outstream: "/dev/null"
         errorstream: "/dev/null"
 
-bowtie2_pe :
-        queue: "hugemem.q"
-        threads : 8

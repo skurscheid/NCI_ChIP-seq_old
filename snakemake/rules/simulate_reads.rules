@@ -4,36 +4,99 @@
 # Author: Maurits Evers
 # License: GPLv3
 # Original date: 16-10-2016
-# Last changed: 16-02-2017
+# Last changed: 22-02-2017
 
-# Input is a fastq.gz reference sequence
+
+# Rule to simulate ChIP TF reads
+# Input is a fa/fa.gz reference sequence and a csv file of the size of
+# all reference sequences in folder config["refdir"]
 # Output is a set of (replicate) fastq files
-# Note: The number of replicates (nReps) is taken from config.yaml,
-# so we need to dynamically determine output files based on nReps
+# Note 1: The number of replicates (nReps) is taken from config.yaml,
+#         so we need to dynamically determine output files based on nReps
+# Note 2: We determine the genome size "inline" using awk on the sizeFile
+#         This is ugly but seems to work...
 rule simulate_ChIP_reads:
     input:
-        join(config["refdir"], "{version}", "{chr}.fa.gz")
+        fasta = join(config["refdir"], "{version}", "{chr}.fa.gz"),
+        refIdx = join(config["refdir"], "{version}/ref_index.csv")
     output:
         expand(join(config["rawdir"], \
-            "simul/{{version}}/{{chr}}/reads_{{simName}}_rep{idxRep}.fastq"), \
-            idxRep = range(1, config["ChIPsim"]["nReps"] + 1))
+            "simul/{{version}}/{{chr}}/reads_{ID}_rep{iRep}_{pair}.fastq.gz"), \
+            ID = config["ChIPsim"]["ChIP"]["name"],
+            iRep = range(1, config["ChIPsim"]["ChIP"]["nReps"] + 1), \
+            pair = ["R1", "R2"])
     log:
-        "logs/simulate_ChIP_reads_{version}_{chr}_{simName}.log"
+        expand("logs/simulate_ChIP_reads_{{version}}_{{chr}}_{ID}.log", \
+            ID = config["ChIPsim"]["ChIP"]["name"])
     params:
         cmd     = config["ChIPsim"]["cmd"],
         outdir  = join(config["rawdir"], "simul", "{version}/{chr}"),
-        simName = "{simName}",
-        EF      = config["ChIPsim"]["EF"],
-        seed    = "1234",
-        nReps   = config["ChIPsim"]["nReps"]
+        simName = config["ChIPsim"]["ChIP"]["name"],
+        Pbind   = config["ChIPsim"]["ChIP"]["Pbind_given_back"],
+        Pback   = config["ChIPsim"]["ChIP"]["Pback_given_back"],
+        EF      = config["ChIPsim"]["ChIP"]["EF"],
+        nReads  = config["ChIPsim"]["ChIP"]["nReads"],
+        nReps   = config["ChIPsim"]["ChIP"]["nReps"],
+        seed    = "1234"
     version: "1.0"
     shell:
         """
             {params.cmd} \
-            -r {input} \
+            -r {input.fasta} \
+            --simName {params.simName} \
+            --bindProb {params.Pbind} \
+            --backProb {params.Pback} \
             --EF {params.EF} \
             --seed {params.seed} \
             --outdir {params.outdir} \
+            --nReads {params.nReads} \
+            --gSize `awk -F ',' '{{sum+=$2}}END{{print sum}}' {input.refIdx}` \
+            --nReps {params.nReps} &> {log}
+        """
+
+# Rule to simulate ChIP input reads
+# Input is a fa/fa.gz reference sequence and a csv file of the size of
+# all reference sequences in folder config["refdir"]
+# Output is a set of (replicate) fastq files
+# Note 1: The number of replicates (nReps) is taken from config.yaml,
+#         so we need to dynamically determine output files based on nReps
+# Note 2: We determine the genome size "inline" using awk on the sizeFile
+#         This is ugly but seems to work...
+rule simulate_input_reads:
+    input:
+        fasta = join(config["refdir"], "{version}", "{chr}.fa.gz"),
+        refIdx = join(config["refdir"], "{version}/ref_index.csv")
+    output:
+        expand(join(config["rawdir"], \
+            "simul/{{version}}/{{chr}}/reads_{ID}_rep{iRep}_{pair}.fastq.gz"), \
+            ID = config["ChIPsim"]["input"]["name"],
+            iRep = range(1, config["ChIPsim"]["input"]["nReps"] + 1), \
+            pair = ["R1", "R2"])
+    log:
+        expand("logs/simulate_ChIP_reads_{{version}}_{{chr}}_{ID}.log", \
+            ID = config["ChIPsim"]["input"]["name"])
+    params:
+        cmd     = config["ChIPsim"]["cmd"],
+        outdir  = join(config["rawdir"], "simul", "{version}/{chr}"),
+        simName = config["ChIPsim"]["input"]["name"],
+        Pbind   = config["ChIPsim"]["input"]["Pbind_given_back"],
+        Pback   = config["ChIPsim"]["input"]["Pback_given_back"],
+        EF      = config["ChIPsim"]["input"]["EF"],
+        nReads  = config["ChIPsim"]["input"]["nReads"],
+        nReps   = config["ChIPsim"]["input"]["nReps"],
+        seed    = "1234"
+    version: "1.0"
+    shell:
+        """
+            {params.cmd} \
+            -r {input.fasta} \
             --simName {params.simName} \
+            --bindProb {params.Pbind} \
+            --backProb {params.Pback} \
+            --EF {params.EF} \
+            --seed {params.seed} \
+            --outdir {params.outdir} \
+            --nReads {params.nReads} \
+            --gSize `awk -F ',' '{{sum+=$2}}END{{print sum}}' {input.refIdx}` \
             --nReps {params.nReps} &> {log}
         """

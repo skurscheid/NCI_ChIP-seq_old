@@ -547,7 +547,7 @@ gg <- gg + labs(y = "Density");
 gg;
 ```
 
-4. Final density distribution is the convolution of the binding density and read density distributions
+4. Final density distribution is the convolution of the binding density and kernel (read?) density distributions
 \begin{equation}
 f_\rho(z) = \sum_{x=0}^z f_w(x) f_r(z-x)
 \end{equation}

@@ -1,0 +1,8 @@
+[Tue Feb 28 2017 16:14:14] Parameter summary
+ dir    = ref/GRCh38
+ regexp = 
+ out    = ref/GRCh38/ref_index.csv
+[Tue Feb 28 2017 16:14:14] Found 2 files in ref/GRCh38:
+ ref/GRCh38/chr22.fa.gz
+ ref/GRCh38/MT.fa.gz
+[Tue Feb 28 2017 16:14:15] Done (time elapsed 2.273138 secs)

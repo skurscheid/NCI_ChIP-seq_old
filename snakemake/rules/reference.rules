@@ -1,24 +1,80 @@
 # Snakemake rules to generate and
 # process reference sequence data
 #
-# Author: Maurits Evers
+# Authors: Maurits Evers, Sebastian Kurscheid
 # License: GPLv3
-# Original date: 13-02-2016
-# Last changed: 13-02-2017
+# Original date: 13-02-2016, ME
+# Last changed: 05-04-2017, SK
+
 
 localrules:
     download_reference
 
-# Download reference sequence using curl
+
+# Rule to download reference sequence using curl
 rule download_reference:
     input:
     output:
         join(config["refdir"], "{version}", "{chr}.fa.gz")
     params:
         cmd  = "curl",
-        URL  = lambda wildcards: expand("{url}", url = config["reference"][wildcards.version][wildcards.chr])
+        URL  = lambda wildcards: expand("{url}", \
+            url = config["reference"]["seqs"][wildcards.chr])
     version: "1.0"
     shell:
         """
             {params.cmd} -o {output} {params.URL}
+        """
+
+
+# Rule to estimate the size of reference files
+# Input is a directory containing fa/fa.gz files
+# Output is csv file in the same folder
+rule estimate_ref_size:
+    input:
+        fasta = expand(join(config["refdir"], "{{version}}/{chr}.fa.gz"),
+            chr = config["reference"]["seqs"].keys()),
+        dir = join(config["refdir"], "{version}")
+    output:
+        join(config["refdir"], "{version}/ref_index.csv")
+    log:
+        "logs/estimate_ref_size_{version}.log"
+    params:
+        cmd = "Rscript scripts/get_fasta_size.R"
+    version: "1.0"
+    shell:
+        """
+            {params.cmd} \
+            -d {input.dir} \
+            -o {output} &> {log}
+        """
+
+
+# build bowtie2 index from downloaded FASTA
+rule decompress_reference:
+    version: "1.0"
+    input:
+        FASTAs = rules.download_reference.output
+    output:
+        "{refdir}/{version}/{chr}.fa"
+    params:
+        cmd = "gzip"
+    shell:
+        """
+            {params.cmd} -dc {input.FASTAs} > {output}
+        """
+
+rule bowtie2_build_index:
+    version: "1.0"
+    input:
+    output:
+        "{indexdir}{index}.1.bt2"
+    params:
+        cmd = config["bowtie2-build"]["cmd"],
+        FASTAs = lambda wildcards: ",".join(glob.glob("".join((config["refdir"], wildcards["index"], "/*.fa"))))
+    log:
+        "logs/bowtie2_build_index_{index}.log"
+    shell:
+        """
+            {params.cmd} {params.FASTAs} {wildcards.indexdir}{wildcards.index}
         """
