@@ -27,6 +27,7 @@ workdir: config["basedir"]
 #######################################################
 
 # Target: Reference sequence
+<<<<<<< HEAD
 REF = expand(join(config["refdir"], "{version}/{chr}.fa.gz"),
     version = config["reference"]["version"],
     chr = config["reference"]["seqs"].keys())
@@ -69,6 +70,34 @@ FASTQ = expand(join(config["rawdir"], \
 #for x in REF:
 #    message("Target " + x)
 
+=======
+REF = expand(join(config["refdir"], "{path}.fa.gz"),
+    path = [x + "/" + y \
+        for x in config["reference"].keys() \
+            for y in config["reference"][x].keys()])
+
+# Target: extracted reference sequences
+FASTAS = expand("{refdir}/{version}/{chr}.fa",
+                refdir = config["refdir"],
+                version = [x for x in config["reference"].keys()],
+                chr = [ y \
+                    for x in config["reference"].keys() \
+                        for y in config["reference"][x].keys()])
+
+# Target: bowtie2 index file
+BTINDEX = expand("{indexdir}/{index}.1.bt2",
+    indexdir = config["indexdir"],
+    index = [x \
+        for x in config["reference"].keys()])
+
+# Target: FASTQ files
+FASTQ = expand(join(config["rawdir"], "simul", "{path}/reads_{simName}_rep{idxRep}.fastq"), \
+    path = [x + "/" + y \
+        for x in config["reference"].keys() \
+            for y in config["reference"][x].keys()],
+    simName = ["TFChIP"],
+    idxRep = range(1, config["ChIPsim"]["nReps"] + 1))
+>>>>>>> 335965a6f9673079854591a03a14610217baa013
 
 #######################################################
 ###################### Includes #######################
@@ -85,4 +114,9 @@ include: "rules/fastq.rules"
 # Input fastq files
 rule all:
     input:
+<<<<<<< HEAD
         REF + FASTQ
+=======
+        FASTAS,
+        BTINDEX
+>>>>>>> 335965a6f9673079854591a03a14610217baa013

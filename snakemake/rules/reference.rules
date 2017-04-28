@@ -1,8 +1,9 @@
 # Snakemake rules to generate and
 # process reference sequence data
 #
-# Author: Maurits Evers
+# Authors: Maurits Evers, Sebastian Kurscheid
 # License: GPLv3
+<<<<<<< HEAD
 # Original date: 13-02-2016
 # Last changed: 28-02-2017
 
@@ -15,6 +16,10 @@
 #    N = sum(int(x[1]) for x in cr))
 #    return(int(N))
 
+=======
+# Original date: 13-02-2016, ME
+# Last changed: 05-04-2017, SK
+>>>>>>> 335965a6f9673079854591a03a14610217baa013
 
 localrules:
     download_reference
@@ -35,6 +40,7 @@ rule download_reference:
             {params.cmd} -o {output} {params.URL}
         """
 
+<<<<<<< HEAD
 
 # Rule to estimate the size of reference files
 # Input is a directory containing fa/fa.gz files
@@ -56,4 +62,33 @@ rule estimate_ref_size:
             {params.cmd} \
             -d {input.dir} \
             -o {output} &> {log}
+=======
+# build bowtie2 index from downloaded FASTA
+rule decompress_reference:
+    version: "1.0"
+    input:
+        FASTAs = rules.download_reference.output
+    output:
+        "{refdir}/{version}/{chr}.fa"
+    params:
+        cmd = "gzip"
+    shell:
+        """
+            {params.cmd} -dc {input.FASTAs} > {output}
+        """
+
+rule bowtie2_build_index:
+    version: "1.0"
+    input:
+    output:
+        "{indexdir}{index}.1.bt2"
+    params:
+        cmd = config["bowtie2-build"]["cmd"],
+        FASTAs = lambda wildcards: ",".join(glob.glob("".join((config["refdir"], wildcards["index"], "/*.fa"))))
+    log:
+        "logs/bowtie2_build_index_{index}.log"
+    shell:
+        """
+            {params.cmd} {params.FASTAs} {wildcards.indexdir}{wildcards.index}
+>>>>>>> 335965a6f9673079854591a03a14610217baa013
         """

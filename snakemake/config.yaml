@@ -2,7 +2,11 @@
 basedir: ".."
 refdir: "ref/"
 rawdir: "rawData/"
+<<<<<<< HEAD
 fastqcdir: "rawData/QC/"
+=======
+indexdir: "ref/bt2Index/"
+>>>>>>> 335965a6f9673079854591a03a14610217baa013
 
 # Reference files
 reference:
@@ -33,6 +37,7 @@ reference:
         X: ftp://ftp.ensembl.org/pub/release-87/fasta/homo_sapiens/dna/Homo_sapiens.GRCh38.dna.chromosome.X.fa.gz
         Y: ftp://ftp.ensembl.org/pub/release-87/fasta/homo_sapiens/dna/Homo_sapiens.GRCh38.dna.chromosome.Y.fa.gz
         MT: ftp://ftp.ensembl.org/pub/release-87/fasta/homo_sapiens/dna/Homo_sapiens.GRCh38.dna.chromosome.MT.fa.gz
+
 
 
 # ChIPsim
